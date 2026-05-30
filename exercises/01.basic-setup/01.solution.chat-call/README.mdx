@@ -1,0 +1,11 @@
+# 🏁 The chat is alive
+
+You did it — the chat works server-side now. Your message hits a real model through OpenRouter and streams back token by token, validated on the way in. That's the entire backend of an AI chat, shipped. 🎉
+
+Nice work. Grab a quick break and a glass of water before the next step.
+
+## 👨‍💼 Peter has notes
+
+> Love that it works! But… it looks broken. It's just dumping raw streamed text into a gray box — no bubbles, no formatting. Customers will think it's busted. Can we make it feel like a real chat?
+
+He's right, and that ugliness is on purpose — you're looking at a hand-written `fetch()` we wrote just to prove the endpoint works. Next exercise we hand all of it over to TanStack AI's `useChat` and get real chat bubbles for free.

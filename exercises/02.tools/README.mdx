@@ -1,0 +1,67 @@
+# Tools
+
+A chat that only *talks* about your app is not very useful. The interesting part starts when the model can **do things** in your app — look up real data, change the URL, add a product to the cart, estimate shipping. In TanStack AI, the way you let a model do things is by giving it **tools**.
+
+A tool is just a function with a name, a description, and a typed schema for its input and output. You hand a list of tools to `chat()`, and from that point on the model can decide — on its own — which tool to call, with which arguments, and when.
+
+## The four kinds of tool you'll meet in this section
+
+TanStack AI gives you four flavors of tool. Each one solves a different problem, and you'll build one of each in this section.
+
+### 🛠️ Server tools
+
+The tool's code runs on the server, next to your database. The model calls it, your server handles it, and the result is streamed back to the model so it can keep talking.
+
+This is what you reach for when the model needs **real data** — products, orders, inventory. The customer asks "do you have anything by Nike under $200?" and the model calls `searchProducts` instead of guessing.
+
+You'll build `searchProducts` in this section.
+
+### 🛠️ Client tools
+
+The tool's code runs in the **browser**, with access to things only the browser has — the router, the DOM, the user's session. The model calls it, but your React component handles it.
+
+This is what you reach for when the model needs to **change what the user sees** without a round-trip — navigating to a new page, scrolling to a section, opening a modal.
+
+You'll build `navigateTo` in this section so the bot can take the user from screen to screen.
+
+### 🛠️ Tools with approval
+
+Some tools should not just *run*. If the model decides to add 500 of something to the cart, you want the customer to click "yes, do that" before it happens. TanStack AI has a built-in approval flow: the tool waits for a `yes`/`no` from the UI before its callback runs.
+
+You'll build `addToCart` with approval in this section.
+
+### 🛠️ Lazy tools
+
+When a model has dozens of tools available, just *describing* all of them on every request gets expensive (lots of tokens) and noisy (the model gets distracted by tools that don't apply). Lazy tools fix this: the model only sees a small **discovery** tool up front, with the lazy tools listed by name only. When the model decides it might need a specific one, it calls discovery to "load" the full description, and *then* the real tool becomes available.
+
+You'll build `getShippingEstimate` as a lazy tool, alongside four pre-built lazy tools (return policy, size guide, care instructions, restock alerts) that show the pattern at scale.
+
+## The mental model
+
+All four flavors share the same shape:
+
+```ts
+import { toolDefinition } from '@tanstack/ai'
+import { z } from 'zod'
+
+const myToolDef = toolDefinition({
+  name: 'doTheThing',
+  description: 'A clear sentence about when the model should reach for this.',
+  inputSchema: z.object({ /* ... */ }),
+  outputSchema: z.object({ /* ... */ }),
+})
+
+// Then one of:
+export const myTool = myToolDef.server(async (args) => { /* ... */ })
+export const myTool = myToolDef.client(async (args) => { /* ... */ })
+```
+
+The `description` is the most important part of any tool. It is what the model reads to decide whether to call your tool, so write it like you are writing a prompt — be specific about *when* the tool is the right answer.
+
+## 📜 Docs
+
+- 📜 [TanStack AI — tools](https://tanstack.com/ai/latest/docs/tools/tools)
+- 📜 [TanStack AI — tool approvals](https://tanstack.com/ai/latest/docs/tools/tool-approval)
+- 📜 [TanStack AI — lazy tools](https://tanstack.com/ai/latest/docs/tools/lazy-tool-discovery)
+
+Ready? Let's give the bot some hands.

@@ -1,0 +1,68 @@
+# 💪 Ask before acting
+
+Your bot can search the catalog and move customers around the site. Both of those are safe — read-only or "just changes the URL". But the moment a tool *does something* on the customer's behalf — adding to cart, applying a discount, sending an email — you do not want the model just doing it. You want the customer to see what is about to happen and click Yes or No first.
+
+In this exercise you'll build an `addToCart` client tool that **needs approval**. The model can pick it, but TanStack AI will pause and wait for the customer to confirm before the tool's code actually runs.
+
+## 🐨 What you will do
+
+Same three-piece shape as the last exercise — define the tool, register it on the server, build the client side — but with one new field on the definition and a new piece of UI for the approval prompt.
+
+### 1. `app/tools/cart.ts` — define the tool
+
+This new file already has the two schemas built for you (`AddToCartInput` and `AddToCartOutput`).
+
+1. 🐨 At the bottom of the file there's a 🐨 block. Use it to build and export `addToCartDef` with `toolDefinition({...})`. Same pattern as `navigateToDef` from last time — but this one has one new field you've never used before: `needsApproval: true`. Setting that on the definition is what makes TanStack AI pause and wait for the customer to click Yes or No before running the tool. Marty 💰 hands you the `name` and the `description` string; plug in `AddToCartInput` and `AddToCartOutput` as the schemas.
+
+### 2. `app/routes/api.chat.tsx` — tell the model the tool exists
+
+2. 🐨 Add `addToCartDef` to the `tools: [...]` array on the `chat({...})` call. Same as last time — even though the tool runs in the browser, the server has to advertise it so the model knows it exists.
+3. 💣 Delete the `void addToCartDef` line above the action.
+
+### 3. `app/components/product-chat.tsx` — provide the implementation *and* the approval UI
+
+This is where the new concept lives. You'll do three things here.
+
+4. 🐨 Build the `addToCart` client tool with `addToCartDef.client(execute)`. The 🐨 block above the `useChat({...})` call walks you through it — same shape as the `navigateTo` tool just above, but the callback closes over `cart` (from `useCart()`) and calls the pre-built `addProductToCart(...)` helper to do the real work.
+5. 🐨 Add `addToCart` to the `tools: [...]` array on `useChat({...})`.
+6. 🐨 Find the **approval prompt UI** further down in the `messages.map(...)` block (look for the `🛒 Add to cart?` card). The card is already built; you just need to wire the **Yes** and **No** buttons. On click, call `addToolApprovalResponse({ id: approvalId, approved: true })` for Yes and `approved: false` for No. `addToolApprovalResponse` is already destructured from `useChat`; `approvalId` is already in scope inside the card.
+
+## 🦉 How approvals work in TanStack AI
+
+The flow looks like this:
+
+1. Model decides to call `addToCart` with some args.
+2. Because the tool's definition has `needsApproval: true`, TanStack AI **does not** run your `.client(...)` callback. Instead it emits a `tool-call` part with `state: 'approval-requested'` and an `approval` object containing an `id`.
+3. Your UI sees that part, renders Yes/No buttons, and the customer clicks.
+4. The button's click handler calls `addToolApprovalResponse({ id, approved: true | false })`.
+5. If approved, **then** TanStack AI runs your `.client(...)` callback and the result goes back to the model.
+6. If denied, the callback never runs. The model is told the request was rejected and can respond accordingly ("ok, I won't add it").
+
+This separation — definition says "needs approval", UI surfaces the request, response unblocks (or doesn't) — is the entire pattern. Once you've wired it once you can apply it to any "this tool *does something*" tool you build later.
+
+## 🦉 Why the approval prompt shows fields like `productName`
+
+The model is the one filling in `productName`, `size`, `color`, and `quantity` — not your code. The approval prompt shows those back to the customer **before** anything runs, so they can see exactly what the model was about to do. If the model picked the wrong size, the customer rejects and the bot tries again.
+
+This is why `productName` is in the tool's `inputSchema` even though the cart already has a name field internally — the schema is the *contract for what the model has to provide*, and we want it to provide a human-readable name so the approval card is readable.
+
+## 📜 Docs
+
+- 📜 [TanStack AI — tool approvals](https://tanstack.com/ai/latest/docs/tools/tool-approval)
+- 📜 `addToolApprovalResponse` — destructure it from `useChat({...})`
+
+## ✅ How to know it is working
+
+Open the chat panel and try these:
+
+- **On a product page, "Add this to my cart, size 10, in red"** → the bot picks the `addToCart` tool, the chat shows a Yes/No card with the product name and the size/color/qty, and *nothing actually happens to your cart yet*. Click **Yes** → the card is replaced with `✅ Added to your cart` and the cart count goes up. Click **No** → you see `❌ Cancelled — not added` and the cart is unchanged.
+- **"Add the Air Zoom Pegasus 38 to my cart"** while on the home page → same flow. The bot can also reach for `searchProducts` first if it needs to look up the id.
+- **Navigate to `/cart`** after a successful add → the item is in the cart, with the right size, color, and quantity.
+
+## 🚨 If you get stuck
+
+- **TypeScript complains that `addToCartDef` is not exported** → you haven't built it yet in `app/tools/cart.ts`. The 🐨 block there is the spec.
+- **The bot adds things to the cart with no prompt** → you forgot `needsApproval: true` on the tool definition. Without that field, the tool runs the moment the model picks it.
+- **The Yes/No buttons render but clicking does nothing** → the `onClick` handlers in the approval card still have the `// 🐨` placeholders. Replace them with calls to `addToolApprovalResponse({ id: approvalId, approved: true | false })`.
+- **The bot says it added something but the cart is empty** → either `addToCart` isn't in the `useChat({ tools: [...] })` array, or the `.client(...)` callback didn't actually call `addProductToCart(...)`. Both are needed.
+- **The model picks weird sizes/colors** → that's actually fine for this exercise — the approval prompt is the safety net. The customer rejects, and the model tries again. If you want better defaults, you could extend the system prompt to nudge the model toward common sizes.

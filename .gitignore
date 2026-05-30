@@ -1,5 +1,8 @@
 node_modules
 
+# logs
+*.log
+
 # non-npm JavaScript lockfiles
 yarn.lock
 pnpm-lock.yaml
@@ -15,11 +18,9 @@ data.db
 /playground
 **/*.tsbuildinfo
 **/dist
+**/.react-router
 
-# in a real app you'd want to not commit the .env
-# file as well, but since this is for a workshop
-# we're going to keep them around.
-# .env
+.env
 
 # ignored stuff
 *.ignored.*

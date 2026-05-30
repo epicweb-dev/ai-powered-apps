@@ -1,0 +1,45 @@
+# 💪 Stream the comparison
+
+The compare page works, but it's painful: the customer sends a question, the spinner sits there for 20–30 seconds, and _then_ the whole table drops in at once. Nothing shows until the model has finished writing every last field.
+
+Here's the thing — the server is **already** streaming the structured output down over SSE, token by token. The client just throws all of that away and waits for the validated `final` object. There's no reason to wait: you can render the comparison as it arrives.
+
+`useChat({ outputSchema })` hands you the in-flight state right next to `final`:
+
+- **`final`** — `Comparison | null`. The validated object. `null` until the model finishes.
+- **`partial`** — `DeepPartial<Comparison>`. Updates on every JSON token; fields appear one at a time as they stream in.
+
+## 🐨 What you will do
+
+One change, in one file — that's the whole point of this exercise.
+
+Open **`app/components/comparison-chat.tsx`** and follow Kody 🐨: read `partial` alongside `final`, and render `final ?? partial`.
+
+Then open **`app/components/comparison-table.tsx`** and _just read it_ — you don't change a line. It already renders a `PartialComparison`, dropping in a `<Skeleton />` for any field that hasn't arrived yet. That's why switching to streaming is a one-liner on your side: the table was built to cope with half-written data from the start.
+
+## 🦉 Why `partial` and `final` instead of just one
+
+`partial` is parsed incrementally as JSON tokens arrive — it's the right thing to render _while_ the model is writing. But it's a `DeepPartial`, so every field could be undefined and TypeScript can't guarantee anything.
+
+`final` only lands once the entire response has been validated against your Zod schema. It's a real `Comparison` with every required field present and constraints (`.min(2)`, `.int()`, etc.) checked.
+
+Render from `final` when available and from `partial` otherwise. `final ?? partial` does exactly that.
+
+## 📜 Docs
+
+- 📜 [TanStack AI — streaming structured output](https://tanstack.com/ai/latest/docs/structured-outputs/streaming)
+- 📜 [TanStack AI — useChat reference](https://tanstack.com/ai/latest/docs/api/ai-react)
+
+## ✅ How to know it is working
+
+1. Make sure at least two products are in your comparison list (the compare badge in the header should show ≥ 2).
+2. Open `/compare` and send a question like "what's the best for everyday use?".
+3. Within ~1–2 seconds, a table with **skeleton placeholders** appears — empty grey bars where the model hasn't filled fields in yet.
+4. Watch fields land one by one: the criteria line first, then each dimension, then each product's value, with rankings and the summary last.
+5. Once the stream completes, the skeletons are gone and the table is fully filled in — `final` has taken over from `partial`.
+
+## 🚨 If you get stuck
+
+- **The table still doesn't appear until the stream finishes** → check that `partial` is in your destructure and that `live` is `final ?? partial` (not just `final`).
+- **TypeScript complains about `undefined` fields somewhere** → make sure you're passing `live` (not `final`) to `<ComparisonTable>`. The table already tolerates `partial`'s `undefined`s; your job is just to hand it the in-flight value.
+- **The page flashes an empty table on first paint, then jumps in** → that's what the `Object.keys(live).length > 0` guard (already wired) prevents: it keeps the spinner up until the first parseable token arrives.

@@ -1,0 +1,11 @@
+# 🏁 It streams now
+
+That's the upgrade. The compare page used to show 20–30 seconds of nothing; now the verdict lands in about a second and the table paints field by field as the model writes it. And your side of it was a single line — `final` → `final ?? partial`. The skeleton-tolerant table was already there waiting; all you did was start feeding it the in-flight data. 🎉
+
+Great — go refresh for a minute before the last step.
+
+## 👨‍💼 Peter has notes
+
+> The streaming feels right immediately. But I caught a problem: when a customer asks a second question, the first comparison just *vanishes*. A few testers ended up re-asking the same things. Let's fix that.
+
+Last step: multi-turn structured output, where every answer keeps its place in the conversation instead of replacing the one before it.

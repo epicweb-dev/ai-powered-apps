@@ -1,0 +1,60 @@
+# 💪 Wire up the chat route
+
+Right now `app/routes/api.chat.tsx` returns a `501 TODO` placeholder. The floating chat panel on the product page already tries to talk to it through a small `fetch()` call we wrote by hand, and the panel shows a red error bubble with that 501. Your job: make this route actually work.
+
+By the end of this step the panel will get a real answer back from a real AI model. It will look ugly inside the panel — raw chunks of text instead of nice chat bubbles. That is on purpose. The next exercise will make it look nice.
+
+## 🐨 What you will do
+
+In `app/routes/api.chat.tsx`, two things are **already imported for you**:
+
+- `chat`, `chatParamsFromRequest`, and `toServerSentEventsResponse` from `@tanstack/ai`
+- `openRouterText` from `@tanstack/ai-openrouter`
+
+You will not touch the imports. You will:
+
+1. 🐨 Build the OpenRouter adapter by calling `openRouterText('openai/gpt-5.5')`. The adapter reads `OPENROUTER_API_KEY` from your environment by itself, so you do not pass the key in.
+2. 🐨 Replace the body of the `action` so that it:
+   - Calls `await chatParamsFromRequest(request)` to parse and validate the AG-UI request body. On a malformed body it throws a `Response` with status 400 — React Router 7 surfaces that to the client automatically, so no `try/catch` needed.
+   - Destructures `messages` from the returned params.
+   - Calls `chat({ adapter, messages })` (the model is already inside the adapter, so there is no separate `model:` field).
+   - Returns `toServerSentEventsResponse(stream)`.
+3. 💣 Delete the `void` lines and the `501` `Response` once your real code is in place.
+
+## 💰 Tips
+
+Add your OpenRouter key to `.env`:
+
+```
+OPENROUTER_API_KEY=your-key-here
+```
+
+`.env.example` already has the variable name listed for you. You can get a key at https://openrouter.ai/keys — the free option is enough for this workshop.
+
+## 🦉 About the model id
+
+OpenRouter expects model ids that start with the provider name. We use `openai/gpt-5.5`, not just `gpt-5.5`. Other models follow the same pattern: `anthropic/claude-...`, `google/gemini-...`, and so on. The model is set when you call `openRouterText(...)`, so switching to a different model later is a one-line change.
+
+## 🦉 About `chatParamsFromRequest`
+
+The helper does three things at once: reads the request body, validates it as the AG-UI envelope (the wire format `useChat` POSTs), and converts the contents into the typed shapes `chat()` expects. If the body is malformed it throws a `Response` with status 400 — React Router 7 catches the throw and sends the 400 to the browser, so you don't need a `try/catch` or an explicit `safeParse` step.
+
+You'll see the same helper in every server route from here on — same call shape, different consumers.
+
+## 📜 Docs
+
+- 📜 [TanStack AI quick start](https://tanstack.com/ai/latest/docs/getting-started/quick-start)
+- 📜 [OpenRouter adapter](https://tanstack.com/ai/latest/docs/adapters/openrouter)
+
+## ✅ How to know it is working
+
+Open any product page, click the small chat bubble in the bottom-right corner, type a message, and press send.
+
+- **Before this step:** a red `501` error appears inside the panel.
+- **After this step:** the panel shows raw chunks of text (Server-Sent Events, called SSE for short) inside a `<pre>` block. It is ugly, but you can see new text arriving piece by piece. That is the goal.
+
+## 🚨 If you get stuck
+
+- **`401` shows up in the red bubble** → `OPENROUTER_API_KEY` is not loaded. Restart the dev server after you edit `.env`.
+- **`400` shows up and the error mentions the model** → the model id is wrong. It should be `openai/gpt-5.5`, not just `gpt-5.5`.
+- **The server log shows a crash** → check that you're calling `await chatParamsFromRequest(request)` (not `request.json()` directly) and `await`ing it.

@@ -1,15 +1,15 @@
 {
-  "name": "workshop-template",
+  "name": "ai-powered-apps",
   "private": true,
   "epicshop": {
-    "title": "Workshop Title 🎃",
-    "subtitle": "Workshop subtitle",
-    "githubRepo": "https://github.com/epicweb-dev/workshop-template",
-    "subdomain": "workshop-template",
+    "title": "AI-Powered Apps with TanStack AI",
+    "subtitle": "Build a streaming AI shopping assistant on top of a real React Router app",
+    "githubRepo": "https://github.com/epicweb-dev/ai-powered-apps",
+    "subdomain": "ai-powered-apps",
     "instructor": {
-      "name": "Some instructor",
+      "name": "Alem Tuzlak",
       "avatar": "/images/instructor.png",
-      "𝕏": "your_x_handle_here"
+      "𝕏": "AlemTuzlak"
     },
     "product": {
       "host": "www.epicweb.dev",
@@ -47,6 +47,10 @@
   },
   "devDependencies": {
     "@epic-web/config": "^1.24.1",
+    "@tanstack/ai": "^0.22.1",
+    "@tanstack/ai-client": "^0.13.0",
+    "@tanstack/ai-event-client": "^0.4.0",
+    "@tanstack/ai-react": "^0.12.1",
     "@types/node": "^24.3.0",
     "oxlint": "^1.51.0",
     "pkgmgr": "^1.1.1",

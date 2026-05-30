@@ -1,0 +1,77 @@
+# 💪 Build a server tool
+
+So far the bot only knows about the product page the customer is on. Ask it "do you have anything by Nike under $200?" and it has to guess — and it will guess wrong.
+
+In this exercise you'll give the bot a **tool** it can call to search the real product database. A tool is a function the model can decide to call on its own. When the model calls it, TanStack AI runs it on the server, takes the result, and feeds it back to the model so it can answer the user with real data.
+
+By the end the bot can search the catalog, find similar products, and recommend top picks. The chat panel shows each result as a real product card.
+
+## 🐨 What you will do
+
+You'll touch two files. Both have all the imports you need already.
+
+### 1. `app/tools/products.ts`
+
+The scaffold already has two working server tools — `findSimilarProducts` and `recommendProducts`. Read through them first. They follow this pattern:
+
+```ts
+const myToolDef = toolDefinition({
+  name: '...',
+  description: '...',
+  inputSchema: z.object({ ... }),
+  outputSchema: ProductList,
+})
+
+export const myTool = myToolDef.server(async (args) => {
+  // call a database helper and return the result
+})
+```
+
+You'll build the third tool, `searchProducts`, in the same file.
+
+This workshop isn't about Zod, so both schemas are already written for you near the top of the file: `SearchProductsInput` (what the model sends in) and `ProductList` (what your tool returns). You just plug them in.
+
+1. 🐨 At the bottom of the file, the 🐨 block tells you what `searchProductsDef` should contain — name, description, which schemas to plug in, and how the `.server(...)` callback should map the args to `getProducts({ ... })`. Write the tool using the two tools above as templates for the *shape*.
+2. 🐨 Export the result as `searchProducts` (the chat route already imports it under that name).
+
+### 2. `app/routes/api.chat.tsx`
+
+The three tools are already imported at the top of the file. They just need to be registered with the chat call.
+
+4. 🐨 Add `tools: [searchProducts, findSimilarProducts, recommendProducts]` to the `chat({ ... })` call. Once the array is there, the model can decide on its own when to call any of the three tools.
+5. 💣 Delete the `void` lines above the action.
+
+## 🦉 How tools work in TanStack AI
+
+When you pass tools to `chat()`, TanStack AI tells the model what tools are available (their names, descriptions, and input shapes). The model decides when to call one. When it does, TanStack AI:
+
+1. Runs the tool's `.server(...)` callback with the model's chosen arguments.
+2. Streams the result back into the conversation as a new message **part** (`type: 'tool-call'` with an `output` field).
+3. Feeds the result back to the model so it can keep talking.
+
+The chat panel's renderer already knows how to handle `tool-call` parts — it looks at the `output` field, and if it has a `products` array, it draws each one as a real `<ProductCard />`. You do not need to touch the rendering for this exercise.
+
+Marty 💰 hands you the canonical `description` string in the file. Read the 🦉 note right above the 🐨 block for *why* that description is structured the way it is — it's the prompt the model reads when deciding whether to call your tool, so it has to be specific about *when* this tool is the right choice.
+
+## 📜 Docs
+
+- 📜 [TanStack AI — server tools](https://tanstack.com/ai/latest/docs/tools/server-tools)
+- 📜 [Zod `.describe()`](https://zod.dev/metadata#describe)
+
+## ✅ How to know it is working
+
+Open the chat panel on any page and try these:
+
+- "Do you have anything by Nike under $200?" — the bot calls `searchProducts` and shows a stack of product cards inside the chat.
+- "Show me some top picks." — the bot calls `recommendProducts` and shows cards.
+- On a product detail page, ask "What else looks like this?" — the bot calls `findSimilarProducts` with the current product's id and shows similar items.
+- Click any product card in the chat — it links to that product's detail page (the card was already wired up for that).
+
+In the chat thread, while a tool is running, you should see a small italic line that says `🔧 Calling searchProducts…`. As soon as the result comes back, the cards replace it.
+
+## 🚨 If you get stuck
+
+- **TypeScript complains that `searchProducts` is not exported from `#app/tools/products.ts`** → you haven't built it yet. The chat route imports it, so the import fails until you create and `export const searchProducts = ...` in the tools file.
+- **The tool runs but no cards appear** → make sure the `.server(...)` callback returns `{ products }` (an object with a `products` array), not just an array.
+- **A `400` shows up in the chat** → the input schema does not match what the model sent. Double-check the field names and that optional fields are marked `.optional()`.
+- **TypeScript complains about `void searchProducts`** → you removed the `void` lines from `api.chat.tsx` but did not actually add `tools: [...]` to the `chat()` call. Either add it, or keep the `void` for a moment.

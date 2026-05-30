@@ -1,0 +1,13 @@
+# 🏁 The model speaks types now
+
+The compare page talks to the model in **types**, not strings. The model returns JSON constrained by your `ComparisonSchema`, TanStack AI validates it, and your table just renders it. No regex, no prose parsing, no "did it use dollar signs this time?" — the schema is both the prompt *and* the type. 🎉
+
+Lovely. Take a short break and refresh.
+
+## 👨‍💼 Peter has notes
+
+> Customers love the comparison table. They hate the wait. It takes 20–30 seconds before *anything* shows up, and on a slow connection it just looks broken. Can we make the rows appear as the model writes them?
+
+Next step: stream the comparison so it fills in field by field. The server's already streaming — you just aren't reading the partial state yet.
+
+🧝‍♀️ Kellie already made the comparison table streaming-ready for next step — it renders a `<Skeleton />` for any field that hasn't arrived yet, so all you'll change is what you read.

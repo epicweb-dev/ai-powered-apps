@@ -1,0 +1,90 @@
+# 💪 Configure the agent
+
+The chat panel works, but the bot will happily answer anything. Ask it for the weather in Tokyo and it will tell you. Ask it about the product on the page and it has no idea which product you mean. The model also has a "reasoning" mode you can turn on so it thinks before it answers — and we are not using it yet.
+
+In this exercise you will configure the agent across three dimensions:
+
+1. **A role.** A global system prompt tells the bot it is an EpicStore shopping assistant and it should only talk about shopping.
+2. **The current product.** When a customer asks about "this jacket", the server fetches the real product from the database using its id (sent over from the browser) and includes the product details in the system prompt.
+3. **Reasoning.** You turn on the model's reasoning mode through `modelOptions`. The model thinks for a moment before it answers, and the chat panel shows that thinking in a collapsible block.
+
+When you are done, the bot will politely refuse off-topic questions, answer product questions using the real product details, and show its reasoning above each answer.
+
+## 🐨 What you will do
+
+There are three small files to update. All the imports are already in place.
+
+### 1. `app/prompts/system.ts`
+
+A new file is set up with two empty placeholders and two Marty 💰 comment blocks that hold the prompt text for you. You will:
+
+1. 🐨 Fill in `GLOBAL_SYSTEM_PROMPT` with the text Marty 💰 gives you in the file.
+2. 🐨 Fill in `buildProductPrompt(product)` with the template Marty 💰 gives you. It uses the `Product` type that is already inferred from the existing `getProductById` helper, so you do not need to write any types.
+
+### 2. `app/components/product-chat.tsx`
+
+The chat panel lives in the landing layout (`app/routes/_landing/_layout.tsx`) so it shows up on every page — home, products listing, product detail, cart, and so on. Inside the panel, a small helper called `useCurrentProduct()` reads the product detail route's loader through `useRouteLoaderData`. It returns the product when the customer is on a `/products/:id` page, and `undefined` everywhere else. The `product` variable inside `ProductChat` is already wired up — you just need to forward it to the server.
+
+3. 🐨 Add `forwardedProps` to the `useChat` options. Because `product` can be `undefined` (the panel is on a page without a specific product), the value needs to be conditional:
+   ```ts
+   forwardedProps: product
+     ? { productId: product.productId }
+     : {}
+   ```
+   When the customer is on a product detail page, the server gets the id. On any other page, no id is sent and the server falls back to the global prompt only.
+
+### 3. `app/routes/api.chat.tsx`
+
+The server route currently only reads `messages` from `chatParamsFromRequest(request)`. You will also pull in `forwardedProps`, validate the new `productId` field, use the prompt helpers, and turn on reasoning.
+
+4. 🐨 Destructure `forwardedProps` alongside `messages` from `await chatParamsFromRequest(request)`.
+5. 🐨 Validate the `forwardedProps` with `PageForwardedProps.safeParse(...)` (already imported from `#app/schemas/chat.js`). Return a `400 Response` if validation fails. `productId` is **optional** here — the chat panel also shows up on the products listing page where there is no specific product.
+6. 🐨 If `props.data.productId` is set, call `getProductById(props.data.productId)` (already imported) to load the product from the database. Otherwise the product is `null`.
+7. 🐨 Pass `systemPrompts: [GLOBAL_SYSTEM_PROMPT, buildProductPrompt(product)]` into the `chat()` call. If the product is `null` (no id, or the id is unknown), pass just `[GLOBAL_SYSTEM_PROMPT]` instead.
+8. 🐨 Add `modelOptions: { reasoning: { effort: 'medium' } }` to the same `chat()` call. This turns on the model's reasoning mode.
+9. 💣 Delete the `void` lines at the top of the file once you are using the imports.
+
+### 4. Back in `app/components/product-chat.tsx`
+
+Once reasoning is on, the model sends a new kind of part called `thinking` along with the `text` parts. The parts loop already renders `text`; it just ignores everything else for now.
+
+10. 🐨 Inside the `m.parts.map(...)` loop, uncomment Marty 💰's `thinking` branch. It renders `thinking` parts inside a collapsible `<details>` so the user can expand to see the model's reasoning, right above each answer.
+
+## 🦉 About `systemPrompts`
+
+`chat()` takes an optional `systemPrompts: string[]` setting. Every entry is added as a system message at the start of the conversation, before the user's first message. You can pass one big prompt or several small ones — the model concatenates them. Keeping the global rules separate from the per-product details makes the two layers easier to change one at a time.
+
+## 🦉 About `forwardedProps`
+
+`useChat` lets you attach any extra JSON to every chat request through `forwardedProps`. On the server, those props come back as `Record<string, unknown>` on the result of `chatParamsFromRequest(request)` — you validate just that portion with a small Zod schema (`PageForwardedProps` here). We use it to pass the `productId` from the page, but you can pass anything you want (user id, current page, feature flags, etc.).
+
+## 🦉 About `modelOptions`
+
+`chat()` takes provider-specific settings through `modelOptions`. The fields you can pass depend on which adapter you are using. For OpenRouter the options include `reasoning`, `temperature`, `topP`, `maxCompletionTokens`, `seed`, and many more. We are using `reasoning: { effort: 'medium' }` here — the other valid values are `'xhigh'`, `'high'`, `'low'`, `'minimal'`, and `'none'`. Higher effort means the model thinks for longer before answering, with higher quality at the cost of speed and tokens used.
+
+## 📜 Docs
+
+- 📜 [TanStack AI — `systemPrompts`](https://tanstack.com/ai/latest/docs/api/ai)
+- 📜 [`useChat` reference](https://tanstack.com/ai/latest/docs/api/ai-react)
+
+## ✅ How to know it is working
+
+Open any product detail page and try the chat:
+
+- Ask "What's the weather in Tokyo?" — the bot says it can only help with shopping.
+- Ask "What is this product?" — the bot answers with the product's real name.
+- Ask "How much is it?" — the bot quotes the real price.
+- Open a different product detail page and ask the same question — the answer updates to the new product.
+- Above each answer you see a `💭 Thinking…` row. Click it to expand and read what the model thought about before it replied.
+
+Then go to the products listing page (`/products`). The chat bubble is there too, but the header just says "Shopping Assistant" because there is no specific product. The bot still answers general shopping questions and still refuses off-topic ones — it just has no per-product context to lean on.
+
+The bot's answers also come back as nicely formatted text. Bold, lists, and other markdown render through `react-markdown` instead of showing as raw `**asterisks**` and `- dashes`.
+
+## 🚨 If you get stuck
+
+- **The bot still answers off-topic questions** → check that `systemPrompts` is set on the `chat()` call, and that `GLOBAL_SYSTEM_PROMPT` has the text from Marty 💰 (not an empty string).
+- **The bot says it does not know the product** → check that the chat panel passes `forwardedProps: { productId }`, and that the server reads it after the `PageForwardedProps.safeParse(forwardedProps)` step (`props.data.productId`).
+- **The server returns 400** → `chatParamsFromRequest` rejected the AG-UI body, or `PageForwardedProps.safeParse` rejected `forwardedProps`. Open devtools → Network and look at the request body to see which field is off.
+- **`getProductById` returns `null`** → the `productId` is wrong or the product was deleted. The action should still work; it just falls back to the global prompt only.
+- **You do not see a thinking row above answers** → check that `modelOptions: { reasoning: { effort: 'medium' } }` is passed to `chat()`, and that the parts loop in `product-chat.tsx` handles `part.type === 'thinking'`. Not every model supports reasoning — make sure the adapter is still `openRouterText('openai/gpt-5.5')`.

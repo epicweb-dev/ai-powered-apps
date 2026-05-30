@@ -1,0 +1,50 @@
+# 💪 Multi-turn structured replies
+
+The comparison streams fast now, but the customer hates it: every follow-up question wipes the previous comparison off the screen. `partial` and `final` on `useChat` only ever track the *latest* in-flight reply, so once the new stream starts the old one is gone.
+
+That's not a bug in your code — it's the wrong tool. `partial`/`final` are designed for single-shot extractions (parse a `Person` out of an email, return a typed itinerary from one prompt). For a multi-turn chat, TanStack AI uses a **different mechanism**: every assistant message carries its own `structured-output` part with its own `partial`, `data`, and `status`. You walk `messages`, find each turn's part, and render it. Old cards stay rendered because they were never coming from the hook in the first place — they're stored on their own assistant messages.
+
+In this exercise you'll rewrite the chat component to use that pattern.
+
+## 🐨 What you will do
+
+One file — `app/components/comparison-chat.tsx` — and **only the message-parts logic**. Every piece of markup (the user bubble, the comparison card, the spinner, the error card, the empty state) is already built for you as components in that file. Your whole job lives in the `messages.map` callback: read each message, find its `structured-output` part, and return the right pre-built component. No JSX or Tailwind to write — Kody 🐨 and Marty 💰 walk you through it right there.
+
+## 🦉 Why each message owns its own part
+
+In a single-shot extraction (`/api/extract-person`) the model writes one structured object and you're done — there's nothing to keep history of, so `partial`/`final` on the hook are fine. The moment you put structured output inside a chat, every turn becomes a distinct, complete reply. Storing the typed result on the message itself is the natural fit: the conversation history *is* a list of structured replies.
+
+The server side didn't change. The route is still `chat({ outputSchema: ComparisonSchema, stream: true })`. TanStack AI is doing the work of routing each assistant turn's JSON into its own `structured-output` part — you're just reading from a different place.
+
+## 🦉 The three states of `StructuredOutputPart`
+
+```ts
+status: 'streaming' | 'complete' | 'error'
+```
+
+- **`'streaming'`** — `partial` is being updated, `data` is still undefined. Read `part.partial` to get a `DeepPartial<Comparison>`. The table already accepts this — that was the previous exercise's work.
+- **`'complete'`** — `data` is set and is the validated `Comparison`. `partial` may still be present and equals `data` field-for-field; reading `data ?? partial` works either way.
+- **`'error'`** — validation failed. `errorMessage` describes why. Show a friendly error card; don't try to render the partial.
+
+## 📜 Docs
+
+- 📜 [TanStack AI — multi-turn structured output](https://tanstack.com/ai/latest/docs/structured-outputs/multi-turn)
+- 📜 [TanStack AI — streaming structured output](https://tanstack.com/ai/latest/docs/structured-outputs/streaming)
+
+## ✅ How to know it is working
+
+1. Make sure at least two products are in your comparison list.
+2. Open `/compare` and send a question — say, "what's the best value?". The first comparison streams in (skeletons → table).
+3. Send a follow-up like "rank by durability instead." **The first comparison stays on screen**, the user bubble for the new question appears below it, and a second card streams in beneath that.
+4. Scroll up — your earlier comparison is still rendered exactly as it was when it finished.
+5. Send a third question. A third card. Everything piles up in order; nothing is lost.
+6. Refresh the page. History wipes (`useChat` doesn't persist across reloads — that's a different problem) but the multi-turn rendering kicks in again as soon as you ask a new question.
+
+## 🚨 If you get stuck
+
+- **TypeScript: `Property 'messages' does not exist on type ...`** → you removed `partial`/`final` but didn't add `messages` to the destructure.
+- **The first card streams fine but a follow-up replaces it** → you're still reading from `live = final ?? partial` somewhere. Every assistant card must read from *its own* `structured-output` part on `m.parts`.
+- **Cards show up empty / show "—" everywhere** → check that you're rendering `part.data ?? part.partial`. If only `part.data` and the run is still streaming, you'll get `undefined`.
+- **TypeScript: `Property 'data' does not exist on type ...`** → make sure you're calling `m.parts.find((p) => p.type === 'structured-output')` directly inside the `messages.map` callback. The narrowing relies on `useChat`'s typed `messages` array.
+- **A turn with `part.status === 'error'` crashes the table** → guard on `status === 'error'` *before* rendering the table; render `<ComparisonErrorCard message={part.errorMessage} />` instead.
+- **The spinner shows up under a *finished* turn** → that turn's `comparison` is coming back empty. Make sure the spinner is only the *fallback* (the last `return`), reached after the error and "has keys" checks — a completed turn has `data`, so it lands on the `<ComparisonCard>` branch first.

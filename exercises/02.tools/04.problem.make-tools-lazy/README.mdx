@@ -1,0 +1,67 @@
+# 💪 Make tools lazy
+
+The bot already has six tools and is about to get five more — return policy, size guide, care instructions, restock alerts, and a shipping estimator. That is a lot of tool descriptions to send to the model on *every single message*, even when the conversation is just "show me red shoes."
+
+In this exercise you'll make those five new tools **lazy**. A lazy tool is advertised to the model by name only, on a synthetic *discovery tool* that TanStack AI adds for you. When the model decides it might need a lazy tool, it calls discovery first to load the full description and schema, then calls the real tool. The result: the prompt stays slim, and niche tools only enter the conversation when they are actually relevant.
+
+## 🐨 What you will do
+
+Same three-piece shape as the last few exercises — define a tool, register it on the server, watch it work — but this time with a `lazy: true` flag on each definition.
+
+### 1. `app/tools/shipping.ts` — define the lazy tool
+
+The schemas (`ShippingEstimateInput`, `ShippingEstimateOutput`) and the `estimate(zipCode)` helper are pre-built.
+
+1. 🐨 At the bottom of the file, build and export `getShippingEstimate`. The 🐨 block walks you through it — same `toolDefinition({...})` shape you've used before, plus one new field: `lazy: true`. The `.server(execute)` callback should be a one-liner that calls the pre-built `estimate(zipCode)` helper.
+
+### 2. `app/routes/api.chat.tsx` — register all five lazy tools
+
+The four other lazy tools (return policy, size guide, care instructions, restock) are already built — read through them in the `app/tools/` folder if you want to see what a "this is the entire tool" file looks like. They are imported for you at the top of the chat route.
+
+2. 🐨 Add the five lazy tools (`getReturnPolicy`, `getSizeGuide`, `getCareInstructions`, `subscribeToRestock`, `getShippingEstimate`) to the `tools: [...]` array on the `chat({...})` call. The order does not matter — eager and lazy tools sit in the same array. The `lazy: true` flag on each definition is what splits them apart at runtime.
+3. 💣 Delete the five `void` lines above the action once the array has them.
+
+## 🦉 What happens behind the scenes
+
+When `chat()` sees a tool with `lazy: true`, it does not pass that tool's description and schema to the model. Instead, TanStack AI builds a single **discovery tool** whose input is "the name of a lazy tool you want to use." The model only sees that one extra tool — its enum lists every lazy tool by name.
+
+When the model wants to call a lazy tool (say `getReturnPolicy`):
+
+1. It calls the discovery tool with `{ name: 'getReturnPolicy' }`.
+2. TanStack AI loads the full description and schema for `getReturnPolicy` and sends them back to the model on the next turn.
+3. The model now has everything it needs and calls `getReturnPolicy` for real.
+4. The tool runs and the result flows back like any other tool result.
+
+Once a lazy tool is discovered in a conversation, it stays available for the rest of that conversation — the model does not have to discover it again.
+
+## 🦉 When to make a tool lazy
+
+Lazy is for **niche** tools — things the customer brings up rarely, where the cost of describing the tool on every message is not worth it. Compare:
+
+- **Eager** (always described): `searchProducts`, `navigateTo`, `addToCart` — the customer touches these constantly.
+- **Lazy** (described on demand): `getReturnPolicy`, `getCareInstructions`, `getShippingEstimate` — the customer brings these up occasionally.
+
+If you find yourself adding a 10th, 15th, 20th tool and the model is getting distracted, lazy is the answer. If the tool is core to every conversation, eager is fine.
+
+## 📜 Docs
+
+- 📜 [TanStack AI — lazy tools](https://tanstack.com/ai/latest/docs/tools/lazy-tool-discovery)
+
+## ✅ How to know it is working
+
+Open the chat panel and try these:
+
+- **"What's your return policy?"** → the bot calls the discovery tool to load `getReturnPolicy`, then calls it, then summarizes the policy. The chat trace shows both calls.
+- **On a product page, "How do I wash these?"** → discovery → `getCareInstructions({ productId })` → answer.
+- **"How long does shipping take to 94103?"** → discovery → `getShippingEstimate({ zipCode: '94103' })` → "$5, about 2 days, West Coast."
+- **"This is sold out in size 10 — let me know when it's back, my email is me@example.com"** → discovery → `subscribeToRestock({...})` → confirmation.
+- **"How does Nike sizing run?"** → discovery → `getSizeGuide({ productId })` → "Nike runs about half a size small…"
+
+For "show me red shoes" or "take me to the cart", the bot should *not* call discovery — those eager tools are still right there.
+
+## 🚨 If you get stuck
+
+- **TypeScript says `getShippingEstimate` is not exported from `#app/tools/shipping.ts`** → you have not built the tool yet. The 🐨 block in `shipping.ts` is the spec.
+- **The bot calls a lazy tool with no prompt to discover it first** → the `lazy: true` flag is missing on that tool's definition. Without it, the tool is eager and gets described upfront.
+- **The bot says "I don't have access to that information" instead of calling a lazy tool** → the lazy tool's *name* in the discovery enum is the only thing the model sees by default. The name has to be specific enough that the model recognizes it as relevant. `getReturnPolicy` is clearer than `policy`.
+- **A tool that should be lazy is described on every message** → check that `lazy: true` is inside `toolDefinition({ ... })`, not as a sibling at the file level.

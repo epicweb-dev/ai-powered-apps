@@ -1,0 +1,61 @@
+{
+  "name": "exercises_02.tools_02.solution.taking-the-user-around",
+  "private": true,
+  "type": "module",
+  "imports": {
+    "#app/*": "./app/*",
+    "#/prisma-generated/*": "./app/generated/prisma/*"
+  },
+  "scripts": {
+    "build": "react-router build",
+    "dev": "react-router dev",
+    "start": "react-router-serve ./build/server/index.js",
+    "typecheck": "react-router typegen && tsc",
+    "test": "playwright test",
+    "db:gen": "prisma generate",
+    "db:studio": "prisma studio",
+    "db:migrate": "DATABASE_URL=file:./data.db prisma migrate dev",
+    "db:push": "prisma db push",
+    "db:reset": "prisma migrate reset",
+    "db:seed": "DATABASE_URL=file:./prisma/data.db tsx prisma/seed.ts"
+  },
+  "dependencies": {
+    "@dotenvx/dotenvx": "^1.51.0",
+    "@epic-web/workshop-utils": "^6.41.3",
+    "@prisma/adapter-better-sqlite3": "^6.16.2",
+    "@prisma/client": "^6.16.2",
+    "@react-router/node": "^7.9.5",
+    "@react-router/serve": "^7.9.5",
+    "@tanstack/ai": "^0.22.1",
+    "@tanstack/ai-code-mode": "^0.1.22",
+    "@tanstack/ai-isolate-node": "^0.1.22",
+    "@tanstack/ai-openrouter": "^0.9.8",
+    "@tanstack/ai-react": "^0.12.1",
+    "isbot": "^5.1.27",
+    "lucide-react": "^0.525.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "react-markdown": "^10.1.0",
+    "react-router": "^7.9.5",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@faker-js/faker": "^10.0.0",
+    "@playwright/test": "^1.39.0",
+    "@react-router/dev": "^7.9.5",
+    "@tailwindcss/vite": "^4.1.4",
+    "@tanstack/react-ai-devtools": "^0.2.43",
+    "@types/node": "^20",
+    "@types/react": "^19.1.2",
+    "@types/react-dom": "^19.1.2",
+    "dotenv": "^16.3.1",
+    "prisma": "^6.16.2",
+    "react-router-auto-routes": "^0.6.1",
+    "react-router-devtools": "^6.2.0",
+    "tailwindcss": "^4.1.4",
+    "tsx": "^4.20.5",
+    "typescript": "^5.8.3",
+    "vite": "^6.3.3",
+    "vite-plugin-devtools-json": "^1.0.0"
+  }
+}

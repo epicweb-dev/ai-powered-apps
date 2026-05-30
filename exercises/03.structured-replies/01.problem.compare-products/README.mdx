@@ -1,0 +1,57 @@
+# 💪 Return a typed comparison
+
+EpicStore now has a **comparison list**. Click *Add to compare* on any product card and that product joins the list. The list lives in `localStorage` (`epicstore.compare.v1`) and a badge in the header tracks how many products are in it. Click the badge — or any "View comparison" link — and you land on `/compare`.
+
+That page is half-wired. The list is loaded from storage, the products being compared render as cards, related products show up as "Similar products to compare against," and the chat panel is mounted at the bottom. Try it: add 2–3 products to the list, open `/compare`, ask the chat "what's the best value?"
+
+The spinner spins. The request goes out. And… nothing useful comes back. The model is replying with **prose** — but the page is built to render a **typed comparison object**, so nothing is shown.
+
+Your job is to constrain the model's reply to a Zod schema so it returns the typed shape the table needs.
+
+## 🐨 What you will do
+
+Three files, each annotated with 🐨 Kody and 💰 Marty comments that walk you through the change right where you make it — there's nothing to flip back here for. Open them in order:
+
+1. **`app/schemas/comparison.ts`** — uncomment Marty's pre-written descriptions and constraints so the model knows what to put in each field.
+2. **`app/routes/api.compare.tsx`** — wire the schema into the `chat()` call.
+3. **`app/components/comparison-chat.tsx`** — render the typed result.
+
+The sections below are background on _why_ this works — read them if you're curious, but the steps live in the files.
+
+## 🦉 How `outputSchema` reaches the model
+
+TanStack AI walks your Zod schema, converts it to JSON Schema, and ships it to the provider's structured-output API. The provider hands the JSON Schema to the model as part of the prompt, and the model is constrained at generation time to emit JSON that conforms.
+
+That's why descriptions matter so much — they're literally part of the prompt the model reads. Tight, specific descriptions ("a plain integer in US cents") produce reliable output; vague ones ("the price") leave the model to guess units, formatting, and intent.
+
+The `.min(2)` you'll add to `dimensions` becomes a JSON Schema `"minItems": 2`. The model sees that and stops trying to return a single-row comparison. The `.nullable()` you'll add to `edge` becomes `"type": ["string", "null"]`, which lets the model say "this dimension is a tie" without guessing a productId.
+
+## 🦉 About the compare list
+
+The compare list is a plain `Array<string>` of product IDs stored in `localStorage` (`epicstore.compare.v1`). The `<CompareProvider>` wraps the app and exposes `useCompare()` to any component — that's how the `ProductCard` button toggles a product in and out of the list, and how the header badge knows the count. The `/compare` page just reads `compare.ids` after hydration and fetches the product data from `/api/compare-data`. None of that is something you author in this exercise — it's there so you have something real to compare.
+
+## 📜 Docs
+
+- 📜 [TanStack AI — structured outputs](https://tanstack.com/ai/latest/docs/chat/structured-outputs)
+- 📜 [TanStack AI — streaming structured output](https://tanstack.com/ai/latest/docs/structured-outputs/streaming)
+- 📜 [Zod `.describe()`](https://zod.dev/metadata#describe)
+
+## ✅ How to know it is working
+
+1. Visit `/products`. Click **Add to compare** on two or more product cards. The card buttons fill in amber and the header badge counts up.
+2. Click the **Compare** badge in the header (the icon next to the cart). You land on `/compare` with your products listed and a row of suggestions below labelled *Similar products to compare against*.
+3. In the chat panel, type a question like "What's the best for everyday use?" and hit send.
+4. After 15–30 seconds, the spinner is replaced with a comparison table: a ranking list, a side-by-side dimensions table, and a one-line verdict.
+5. Send a follow-up like "Rank by price-to-quality ratio." You get a fresh comparison back.
+6. Click **Add to compare** on one of the suggestions. The next comparison includes that product. Click the **×** on any card in the *In your comparison* section to remove it.
+
+While the model is thinking, you see the spinner. The whole table appears at once when validation completes — that's the `final` field doing its job.
+
+## 🚨 If you get stuck
+
+- **The spinner never goes away and you never see a table** → check that `chat({ ... })` has both `outputSchema` and `stream: true`. Without `stream: true`, the route can still return a response, but `useChat` won't receive structured frames and `final` stays `null`.
+- **TypeScript complains that `final` does not exist on the `useChat` return** → you haven't added `outputSchema` to `useChat` yet. The hook's return type changes when `outputSchema` is set.
+- **You see a `400` or a runtime validation error** → your schema requires fields the model isn't providing. Look at the validation error to see which field is missing or wrong-shaped, then check the description on that field — is it specific enough to tell the model what to do?
+- **The table renders but `edge` shows the wrong product (or "—" everywhere)** → make sure `edge` is `.nullable()`, otherwise the model is forced to pick a winner on every dimension and may guess at random when there's no clear edge.
+- **The model returns a comparison with only 1 dimension** → add `.min(2)` to the `dimensions` array. The model treats minimums as hard requirements.
+- **The compare list is empty on `/compare` and you swear you added items** → the list is read from localStorage after hydration. Open devtools → Application → Local Storage and look for `epicstore.compare.v1`. If it's missing, the `<CompareProvider>` isn't in scope — but it should be, it's wired in `app/root.tsx`.

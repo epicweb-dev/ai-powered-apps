@@ -1,0 +1,74 @@
+# 💪 Take the user around
+
+The bot can search the catalog now, but it can't *move* the customer anywhere. Ask it "take me to the cart" and it answers in text — it has no way to actually change the URL.
+
+That's because the only kind of tool you've built so far is a **server tool**: its callback runs on the server, next to the database. The server doesn't have a router. It can't push a new URL into the customer's browser.
+
+In this exercise you'll build a **client tool**. A client tool is a tool whose callback runs **in the browser**, inside your React component. That gives it access to browser-only things — and the one you need today is React Router's `useNavigate()`.
+
+## 🐨 What you will do
+
+The flow has three pieces. The first is a quick recap of what you learned last time; the rest is the new client-tool wiring.
+
+### 1. `app/tools/navigation.ts` — define the tool (recap from last exercise)
+
+This new file already has the schemas built for you (`NavigateToInput` and `NavigateToOutput`) and a `NAVIGABLE_PAGES` map at the top with one entry per page the bot is allowed to send customers to.
+
+🦉 The Zod enum *and* the per-page documentation string the model reads are both derived from `NAVIGABLE_PAGES`, so there's exactly one place to edit when you add or remove a navigable page.
+
+🦉 Why an explicit allowlist instead of "every route in the app"? React Router doesn't ship a runtime hook that enumerates every defined route, and we wouldn't want one even if it did. `/api/chat` is a route. `/products/$productId` is a route that needs an id the bot can't guess. The allowlist is a deliberate subset — it's the security/UX boundary that keeps the bot out of pages it shouldn't reach.
+
+1. 🐨 At the bottom of the file there's a 🐨 block. Use it to build and export `navigateToDef` — same pattern as the server tools you wrote last time. Marty 💰 hands you the `name` and the `description` string; plug in `NavigateToInput` and `NavigateToOutput` as the schemas. **Do not** call `.server(...)` or `.client(...)` here — the file exports just the bare definition.
+
+### 2. `app/routes/api.chat.tsx` — tell the model the tool exists
+
+2. 🐨 Add `navigateToDef` to the `tools: [...]` array on the `chat({...})` call. The server doesn't run this tool itself — but it still has to tell the model that the tool is available, so the model knows it can call it.
+3. 💣 Delete the `void navigateToDef` line above the action once you've added it.
+
+### 3. `app/components/product-chat.tsx` — provide the implementation (the new bit)
+
+This is the new concept. Open `product-chat.tsx` and find the 🦉/🐨 block in the `ProductChat` component.
+
+4. 🐨 Build the client tool as `const navigateTo`, using `navigateToDef.client(execute)`. The callback receives whatever the model picked from the `inputSchema` and must return something matching the `outputSchema` — `navigation.ts` is the spec. Use `navigate` (from `useNavigate()`, already in scope) to actually move the customer. The callback can be sync — `navigate(...)` is synchronous, `.client(...)` accepts both sync and async.
+5. 🐨 Add `tools: [navigateTo]` to the `useChat({...})` call. That's what hands your client tool to TanStack AI on the browser side.
+6. 💣 Delete the two `void` lines (`navigateToDef`, `navigate`) once you're using them for real.
+
+## 🦉 Server tools vs client tools — the mental model
+
+A **server tool** is one where you call `.server(execute)`. The server runs the callback, streams the result back into the conversation, and the model keeps talking. Examples: `searchProducts`, `findSimilarProducts`.
+
+A **client tool** is one where you call `.client(execute)`. The model still decides when to call it, but TanStack AI tells the *browser* to run the callback — not the server. The result then gets sent back into the conversation the same way.
+
+Both kinds of tool look identical to the model. Both need their *definition* (name, description, schema) registered with `chat()` on the server so the model knows they exist. The only difference is **where the code runs** when the model picks it.
+
+Server tools are for things only the server can do (database reads, secrets, paid APIs). Client tools are for things only the browser can do (routing, scroll, localStorage, the user's clipboard).
+
+## 🦉 Why is the tool built inside the component?
+
+The `.client(...)` callback needs `navigate` from `useNavigate()`. You can't call `useNavigate()` outside a component — it's a hook. So you build the tool inside the component, where the hook's value is in scope, and the callback closes over `navigate`.
+
+This is the standard pattern for client tools: grab whatever React state or hook values you need at render time, then build the tool with `.client(execute)` so the execute callback can reference them.
+
+## 📜 Docs
+
+- 📜 [TanStack AI — client tools](https://tanstack.com/ai/latest/docs/tools/client-tools)
+- 📜 [React Router — `useNavigate`](https://reactrouter.com/api/hooks/useNavigate)
+
+## ✅ How to know it is working
+
+Open the chat panel from any page and try these:
+
+- **"Take me to the cart"** → the URL changes to `/cart` and the chat thread shows `📍 Took you to the cart page.`
+- **"Show me all products"** → the URL changes to `/products`.
+- **"Go back home"** → the URL changes to `/`.
+- **"Open the about page"** → the URL changes to `/about`.
+
+The chat panel itself stays mounted across these navigations because it lives in the landing layout — so the conversation history is preserved while the customer is moved around the site.
+
+## 🚨 If you get stuck
+
+- **TypeScript complains that `navigateToDef` is not exported from `#app/tools/navigation.ts`** → you haven't built it yet. The 🐨 block in `navigation.ts` tells you exactly what to put in `toolDefinition({...})`.
+- **TypeScript complains about `navigateTo` being undefined** → you haven't built the const in `product-chat.tsx` yet. Read the 🦉/🐨 block there and look at `navigation.ts` to see what shapes go in and out.
+- **The bot answers in text instead of navigating** → either you forgot to add `navigateToDef` to the server `tools: [...]`, or you forgot to add `navigateTo` to the `useChat({ tools: [...] })`. Both have to be there: the server side advertises the tool, the client side runs it.
+- **The bot calls the tool but the URL doesn't change** → make sure your callback actually calls `navigate(destination)`. Returning the right object isn't enough — `navigate(...)` is the side effect that does the work.
+- **`navigate` is undefined inside the callback** → you skipped the `const navigate = useNavigate()` line at the top of the component. The callback closes over that value, so it has to exist before you build the tool.

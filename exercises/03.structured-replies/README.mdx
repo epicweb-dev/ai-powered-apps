@@ -1,0 +1,91 @@
+# Structured Replies
+
+So far every reply from the model has been **prose**. That's fine for "tell me about this jacket," but it falls apart the moment the customer wants to *compare two products side-by-side*. The model's first attempt looks like this:
+
+> The Nike Pegasus 40 is $129 and has 4.6 stars. The Brooks Ghost 15 is $140 and has 4.7 stars. The Pegasus is lighter, but the Ghost has better cushioning…
+
+Now build a table out of that. You parse for dollar signs, hope the model uses consistent units, write fragile regex for the star ratings, deal with the model occasionally returning "around $130" or "ten-point-five oz" instead of numbers. The model is generating *text*, and your UI has to reverse-engineer the data back out.
+
+There is a better way. TanStack AI lets you hand the model a **Zod schema** and the model is constrained to write JSON that matches it. The reply is no longer prose for you to parse — it's data you can render.
+
+## Structured outputs in TanStack AI
+
+Pass `outputSchema` (and `stream: true`) to `chat()`:
+
+```ts
+import { chat } from '@tanstack/ai'
+import { z } from 'zod'
+
+const PersonSchema = z.object({
+	name: z.string().describe('Full name'),
+	age: z.number().int().describe('Age in years'),
+})
+
+const stream = chat({
+	adapter,
+	messages,
+	outputSchema: PersonSchema,
+	stream: true,
+})
+```
+
+The server still hands `useChat` an SSE stream, but the contents are different. Instead of `TEXT_MESSAGE_CONTENT` deltas that you concatenate into a string, the model writes JSON tokens that get parsed against your schema. When the stream finishes and the result validates, you get back a fully typed `Person`.
+
+On the client, `useChat` knows about this:
+
+```tsx
+const { sendMessage, isLoading, partial, final } = useChat({
+	connection: fetchServerSentEvents('/api/extract-person'),
+	outputSchema: PersonSchema,
+})
+```
+
+You get two new fields:
+
+- **`partial`** — a `DeepPartial<Person>` that updates as JSON streams in. Useful for rendering rows of a table as the model writes them.
+- **`final`** — the validated `Person`, or `null` until the stream completes.
+
+`partial` and `final` are designed for **single-shot** structured extractions — perfect when you're parsing one object out of one prompt.
+
+The three exercises in this section build on each other:
+
+1. **Typed reply** — hand the model an `outputSchema` and render the validated `final` object as a comparison table.
+2. **Stream the comparison** — render from `partial` so the table fills in field by field as the model writes it.
+3. **Multi-turn structured replies** — render each assistant turn's own `structured-output` part across a full back-and-forth conversation.
+
+## Descriptions are prompt engineering
+
+The single most important thing to internalise: **every `.describe(...)` call on your Zod schema ends up in the JSON Schema the model sees**. Those descriptions are part of the prompt. The model reads them to decide what to write.
+
+A field labelled
+
+```ts
+price: z.number()
+```
+
+is described to the model as "a number." Good luck.
+
+A field labelled
+
+```ts
+price: z.number().describe('Price in US dollars. Format as a plain number — no currency symbol, no commas.')
+```
+
+gives the model a fighting chance of returning `129` instead of `"$129"`, `"~130"`, or `"129 USD"`.
+
+When you write the schema in the next exercise, treat descriptions like mini-prompts — be specific about format, intent, and what makes a "good" answer.
+
+## Tools still work
+
+Structured replies and tools are **not** mutually exclusive. When you pass both `tools` and `outputSchema`, TanStack AI runs the agent loop first — the model can call `searchProducts`, `findSimilarProducts`, whatever — and only after every tool call resolves does the structured output start streaming. You get the full benefit of tool calling *and* a typed final reply.
+
+That's exactly what you'll do in this section: a comparison chat where the model can look up product attributes via tools, then return a typed comparison object.
+
+## 📜 Docs
+
+- 📜 [TanStack AI — structured outputs](https://tanstack.com/ai/latest/docs/chat/structured-outputs)
+- 📜 [TanStack AI — streaming structured output](https://tanstack.com/ai/latest/docs/structured-outputs/streaming)
+- 📜 [TanStack AI — multi-turn structured output](https://tanstack.com/ai/latest/docs/structured-outputs/multi-turn)
+- 📜 [Zod `.describe()`](https://zod.dev/metadata#describe)
+
+Open the first exercise to start.

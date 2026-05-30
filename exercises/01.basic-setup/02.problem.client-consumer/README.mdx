@@ -1,0 +1,58 @@
+# 💪 Show the messages on the page
+
+The previous exercise left the chat panel talking to `/api/chat` through a hand-written `fetch` call. The answer comes back as raw chunks of text in a `<pre>` block. It works, but the panel does not feel like a chat: the conversation is not remembered between sends, the answer does not appear word by word, and there is no nice loading state.
+
+In this exercise you will replace that hand-written code with TanStack AI's `useChat` hook. By the end the panel will feel like a real chat: messages appear word by word, the conversation is remembered, and the bot knows what you said two messages ago.
+
+## 🐨 What you will do
+
+In `app/components/product-chat.tsx`, the imports you need are already at the top of the file: `useChat` and `fetchServerSentEvents` from `@tanstack/ai-react`.
+
+1. 🐨 Call `useChat({ connection: fetchServerSentEvents('/api/chat') })` and read `messages`, `sendMessage`, and `isLoading` from what it returns.
+2. 💣 Delete the four 💣-marked pieces that belong to the hand-written `fetch`:
+   - The `reply`, `error`, `isLoading` `useState` calls
+   - The `sendHandRolled` function
+   - The `<pre>{reply}</pre>` and `<div>⚠️ {error}</div>` JSX inside the messages area
+   - The `void useChat` / `void fetchServerSentEvents` lines (not needed once you actually use them)
+3. 🐨 In the messages area, show the chat. Marty 💰 has left a ready-to-use JSX block as a comment **inside `product-chat.tsx`**, right after the bomb-marked code you just deleted. Uncomment it. It walks each message's `parts` and shows every `text` part.
+4. 🐨 Change the form's `onSubmit` so it calls `sendMessage(draft)` and then clears the draft:
+
+   ```tsx
+   <form
+     onSubmit={(event) => {
+       event.preventDefault()
+       if (!draft.trim() || isLoading) return
+       void sendMessage(draft)
+       setDraft('')
+     }}
+     ...
+   >
+   ```
+
+## 🦉 About `useChat`
+
+`useChat` is the main React hook in TanStack AI. It takes care of the connection to the server, the list of messages, the loading flag, and everything else about the chat lifecycle. You do not write any of that yourself.
+
+The `messages` array it gives you back is not shaped like the simple `{ role, content }` pairs you send to the server. Each message is a **UIMessage**: `{ id, role, parts: Array<MessagePart> }`. A `MessagePart` can be `text`, `tool-call`, `tool-result`, `thinking`, an image, audio, video, or a document. For now you will only see `text` parts. We will handle the others as they show up in later sections.
+
+## 📜 Docs
+
+- 📜 [TanStack AI — Quick start (React)](https://tanstack.com/ai/latest/docs/getting-started/quick-start)
+- 📜 [`useChat` reference](https://tanstack.com/ai/latest/docs/api/ai-react)
+
+## ✅ How to know it is working
+
+Open any product page, click the chat bubble, and have a short conversation.
+
+- **Before this exercise:** sending a message shows raw chunks of text in the panel.
+- **After this exercise:**
+  - Your message shows up right away as an amber bubble on the right.
+  - The bot's answer comes in word by word as a stone-colored bubble on the left.
+  - Send a follow-up message like "what did I just ask?" — the bot remembers the earlier message.
+  - In devtools → Network, there is one request per send, and the full chat so far is in the request body.
+
+## 🚨 If you get stuck
+
+- **TypeScript shows a duplicate `isLoading` error** → you read `isLoading` from `useChat` but did not delete the old `useState<isLoading>` line. Delete the old one.
+- **The panel scrolls in a strange way or closes every time you send a message** → keep the `isOpen` state local to the panel. Do not try to read it from `useChat`.
+- **The bot does not remember the previous message** → look in the Network tab. If only the latest message is in the request body, you may be building your own array and giving it to `sendMessage`. Pass `sendMessage(draft)` a plain string instead; the hook will add it to the messages list for you.

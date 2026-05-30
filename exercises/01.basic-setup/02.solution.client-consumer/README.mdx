@@ -1,0 +1,13 @@
+# 🏁 Real chat, real bubbles
+
+Look at that — you ripped out the hand-rolled `fetch` and dropped in `useChat`, and now it's a real chat: proper user and assistant bubbles, word-by-word streaming, conversation history, and a loading state. You wrote none of that plumbing — the hook did. 🎉
+
+Great work. Stretch, grab some water, and come back when you're ready.
+
+## 👨‍💼 Peter has notes
+
+> The chat feels great now! But I just watched it cheerfully answer "What's the weather in Tokyo?" and "Write me a Python function." That's not a shopping assistant — that's a generic chatbot wearing our logo. It should act like an EpicStore employee: stay on topic, and actually know which product the customer is looking at.
+
+He's right. Next step we give the bot a role and a sense of *where it is*.
+
+🧝‍♀️ Kellie already wired up the `forwardedProps` plumbing for you (the chat schema, and sending the current `productId` from the browser), so next step you can focus purely on the prompts.

@@ -1,0 +1,89 @@
+# Basic Setup
+
+Before we get to anything fancy, we need to get the basics working: a server route that can talk to an AI model, and a chat panel on the page that can show what the model says back. That is what this section is about.
+
+## How TanStack AI works
+
+TanStack AI is built around streaming. When you ask the model a question, the answer arrives one small piece at a time, not all at once. The full path looks like this:
+
+```
+useChat (in the browser)  ─┐
+                           ├──→ HTTP POST  ──→  server route  ──→ chat({ adapter, messages })  ──→  Server-Sent Events (SSE)  ──→  back to useChat
+fetchServerSentEvents
+```
+
+On the server side, a working chat route only needs a few lines:
+
+```ts
+import { chat, chatParamsFromRequest, toServerSentEventsResponse } from '@tanstack/ai'
+import { openRouterText } from '@tanstack/ai-openrouter'
+
+const adapter = openRouterText('openai/gpt-5.5')
+
+export const action = async ({ request }: Route.ActionArgs) => {
+	const { messages } = await chatParamsFromRequest(request)
+	const stream = chat({ adapter, messages })
+	return toServerSentEventsResponse(stream)
+}
+```
+
+Four things to notice here:
+
+1. **The adapter already knows which model to use.** When you call `openRouterText('openai/gpt-5.5')` you get back an adapter that is locked to that model. The `chat()` call does not take a separate `model` field.
+2. **The API key is read from `process.env.OPENROUTER_API_KEY` automatically.** You do not pass it in.
+3. **`chat()` returns a stream of small pieces, not a finished response.**
+4. **`toServerSentEventsResponse(stream)` turns that stream into something the browser can read.** It uses Server-Sent Events (SSE), which is a simple way for the server to push data to the browser over time.
+
+The OpenRouter adapter is just one option. There are similar adapters for OpenAI, Anthropic, Gemini, Ollama, and others. Switching between them later is a one-line change.
+
+## Why we check user input
+
+If the browser sends `{ messages: [] }` or `{ foo: 'bar' }`, you do not want the route to crash or to forward a broken payload to the model. TanStack AI ships a helper for exactly this: `chatParamsFromRequest(request)`.
+
+It reads the request body, validates it as an AG-UI envelope (the wire format `useChat` POSTs), and returns spread-friendly params you can hand straight to `chat()`:
+
+```ts
+const { messages } = await chatParamsFromRequest(request)
+```
+
+A few notes on what it does:
+
+- On a malformed body, `chatParamsFromRequest` **throws a `Response`** with status 400 and a clear error message. React Router 7 surfaces thrown `Response` objects to the client automatically, so you do not need a `try/catch`.
+- The returned `messages` come back typed as `Array<UIMessage | ModelMessage>` — exactly the shape `chat()` accepts.
+- It also returns `forwardedProps`, `threadId`, `runId`, and other AG-UI envelope fields when you need them.
+
+In the first two exercises you only need the `messages` field, so the route stays one line. From Exercise 3 onwards you'll start using `forwardedProps` to pass page-specific data (like the current product id) — and you'll add a small Zod schema (`PageForwardedProps`) to validate just that portion.
+
+## How the browser side connects
+
+On the browser, **one hook** does all the chat work. `useChat` gives you back a `messages` list, a `sendMessage` function, and an `isLoading` flag. You do not manage the connection or the message list yourself.
+
+```tsx
+const { messages, sendMessage, isLoading } = useChat({
+	connection: fetchServerSentEvents('/api/chat'),
+})
+```
+
+The `messages` you get back are a bit richer than the `{ role, content }` pairs you send to the server. Each message is a **UIMessage** that looks like this:
+
+```ts
+interface UIMessage {
+	id: string
+	role: 'system' | 'user' | 'assistant'
+	parts: Array<MessagePart>
+}
+```
+
+Each message is made of `parts`. A part can be `text`, `thinking`, `tool-call`, `tool-result`, an image, audio, video, or a document. For now you will only see `text` parts. We will handle the others as they become useful in later sections.
+
+## What you will build in this section
+
+Three short exercises:
+
+1. **Wire up the chat route** — replace a `501 TODO` placeholder in `app/routes/api.chat.tsx` with a real `chat()` call that checks the input, talks to the model through OpenRouter, and sends a Server-Sent Events (SSE) stream back to the browser.
+2. **Show the messages on the page** — swap the panel's hand-written `fetch` call for `useChat` so the UI shows real chat bubbles, remembers the conversation, and streams answers as they come in.
+3. **Configure the agent** — give the bot a clear role with a global system prompt that refuses off-topic questions, feed it the real product the customer is looking at by fetching it on the server, and turn on the model's reasoning mode through `modelOptions` so it thinks before it answers.
+
+By the end of this section, the floating panel on every product page will be a focused EpicStore shopping assistant that knows which product the customer is viewing and shows its reasoning above each answer. The next section adds tools so the bot can also look up other products from the catalog.
+
+Let's go! 🚀
