@@ -1,5 +1,5 @@
 <div>
-  <h1 align="center"><a href="https://www.epicweb.dev/workshops/ai-powered-apps">AI-Powered Apps with TanStack AI</a></h1>
+  <h1 align="center"><a href="https://www.epicweb.dev/workshops/ai-powered-apps">Building AI-Powered Apps</a></h1>
   <strong>
     Build a streaming AI shopping assistant on top of a real React Router app
   </strong>

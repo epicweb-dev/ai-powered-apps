@@ -2,7 +2,7 @@
   "name": "ai-powered-apps",
   "private": true,
   "epicshop": {
-    "title": "AI-Powered Apps with TanStack AI",
+    "title": "Building AI-Powered Apps",
     "subtitle": "Build a streaming AI shopping assistant on top of a real React Router app",
     "githubRepo": "https://github.com/epicweb-dev/ai-powered-apps",
     "subdomain": "ai-powered-apps",

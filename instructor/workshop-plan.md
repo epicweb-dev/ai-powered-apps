@@ -1,4 +1,4 @@
-# Workshop: AI-Powered Apps with TanStack AI
+# Workshop: Building AI-Powered Apps
 
 > **Status:** Draft v2 — outline mapped to the real starter app. Review before any exercise code is written.
 
@@ -224,7 +224,7 @@ These are *not* exercises — they're scaffolding the learner inherits.
 
 ## Locked Decisions (v2 review)
 
-- **Title:** *AI-Powered Apps with TanStack AI*
+- **Title:** *Building AI-Powered Apps*
 - **Chat placement:** floating panel, bottom-right of the product detail page
 - **Cart scaffolding:** React context, no DB persistence
 - **Final exercise:** Code Mode with the Node V8 isolate driver (replaces image gen — image gen moves entirely to workshop #2)
