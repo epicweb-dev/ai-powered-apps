@@ -8,7 +8,12 @@ In this exercise you'll rewrite the chat component to use that pattern.
 
 ## 🐨 What you will do
 
-One file — `app/components/comparison-chat.tsx` — and **only the message-parts logic**. Every piece of markup (the user bubble, the comparison card, the spinner, the error card, the empty state) is already built for you as components in that file. Your whole job lives in the `messages.map` callback: read each message, find its `structured-output` part, and return the right pre-built component. No JSX or Tailwind to write — Kody 🐨 and Marty 💰 walk you through it right there.
+One file — `app/components/comparison-chat.tsx` — and two small changes, both flagged by Kody 🐨 right where they happen:
+
+1. **Read `messages` from `useChat`.** A `const messages = []` placeholder keeps the page rendering its empty state for now — pull the real `messages` off the `useChat` destructure and delete the placeholder. (Last exercise you read `partial`/`final`; those only ever held the *latest* reply, which is why every follow-up wiped the previous comparison off the screen.)
+2. **Render each turn.** Fill in the (currently empty) `messages.map` callback: return the right component for each message — a user bubble for user turns, and for an assistant turn either an error card or the comparison card (pass `comparison ?? {}`, and the table renders skeletons until fields stream in).
+
+🧝‍♀️ Kellie already built every presentational piece — the user bubble, comparison card, spinner, error card, and empty state — plus a `getUserText` helper, all sitting in that same file. There's no JSX or Tailwind to write; you're only deciding what to render for each message, and Marty 💰 hands you the part shape and component props right where you need them.
 
 ## 🦉 Why each message owns its own part
 
@@ -42,9 +47,8 @@ status: 'streaming' | 'complete' | 'error'
 
 ## 🚨 If you get stuck
 
-- **TypeScript: `Property 'messages' does not exist on type ...`** → you removed `partial`/`final` but didn't add `messages` to the destructure.
-- **The first card streams fine but a follow-up replaces it** → you're still reading from `live = final ?? partial` somewhere. Every assistant card must read from *its own* `structured-output` part on `m.parts`.
-- **Cards show up empty / show "—" everywhere** → check that you're rendering `part.data ?? part.partial`. If only `part.data` and the run is still streaming, you'll get `undefined`.
+- **TypeScript: `Property 'messages' does not exist` / `Cannot find name 'messages'`** → you deleted the `const messages = []` placeholder but didn't add `messages` to the `useChat` destructure.
+- **A follow-up replaces the previous card instead of stacking** → make sure each card reads from *its own* message's `structured-output` part (`m.parts`), not from a single shared value.
+- **Cards show up empty / show "—" everywhere** → that's expected before tokens arrive: `comparison ?? {}` is `{}`, so the table renders skeletons until `part.partial`/`part.data` fills in.
 - **TypeScript: `Property 'data' does not exist on type ...`** → make sure you're calling `m.parts.find((p) => p.type === 'structured-output')` directly inside the `messages.map` callback. The narrowing relies on `useChat`'s typed `messages` array.
-- **A turn with `part.status === 'error'` crashes the table** → guard on `status === 'error'` *before* rendering the table; render `<ComparisonErrorCard message={part.errorMessage} />` instead.
-- **The spinner shows up under a *finished* turn** → that turn's `comparison` is coming back empty. Make sure the spinner is only the *fallback* (the last `return`), reached after the error and "has keys" checks — a completed turn has `data`, so it lands on the `<ComparisonCard>` branch first.
+- **A turn with `part.status === 'error'` crashes the table** → guard on `status === 'error'` *before* rendering the card; render `<ComparisonErrorCard message={part.errorMessage} />` instead.

@@ -42,9 +42,6 @@ export const action = async ({ request }: Route.ActionArgs) => {
 		tools: [searchProducts, findSimilarProducts],
 		outputSchema: ComparisonSchema,
 		stream: true,
-		modelOptions: {
-			reasoning: { effort: 'medium' },
-		},
 	})
 	return toServerSentEventsResponse(stream)
 }

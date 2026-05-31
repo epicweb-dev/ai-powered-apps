@@ -50,9 +50,6 @@ export const action = async ({ request }: Route.ActionArgs) => {
 		systemPrompts,
 		messages,
 		tools: [searchProducts, findSimilarProducts],
-		modelOptions: {
-			reasoning: { effort: 'medium' },
-		},
 	})
 	// 🦉 The agent loop runs first (so the model can call `searchProducts` /
 	//    `findSimilarProducts` to look up product attributes), and only

@@ -1,5 +1,5 @@
 import { useChat, fetchServerSentEvents } from '@tanstack/ai-react'
-import { AlertCircle, Loader2, Send } from 'lucide-react'
+import { AlertCircle, Send } from 'lucide-react'
 import { useState } from 'react'
 import { ComparisonTable } from '#app/components/comparison-table.tsx'
 import {
@@ -15,13 +15,6 @@ type ProductSummary = {
 	price: number
 }
 
-function getUserText(parts: ReadonlyArray<{ type: string; content?: string }>) {
-	return parts
-		.filter((p) => p.type === 'text')
-		.map((p) => p.content ?? '')
-		.join('')
-}
-
 export function ComparisonChat({
 	products,
 }: {
@@ -30,11 +23,19 @@ export function ComparisonChat({
 	const productIds = products.map((p) => p.id)
 	const [draft, setDraft] = useState('')
 
-	const { sendMessage, isLoading, messages } = useChat({
+	// 🐨 Pull `messages` off useChat — the whole conversation, where every
+	//    assistant turn carries its own `structured-output` part. (Last exercise
+	//    you read `partial`/`final`, but those only ever hold the *latest* reply,
+	//    which is why each follow-up wiped the previous comparison off the screen.)
+	const { sendMessage, isLoading } = useChat({
 		connection: fetchServerSentEvents('/api/compare'),
 		forwardedProps: { productIds },
 		outputSchema: ComparisonSchema,
 	})
+
+	// 🐨 Delete this placeholder and read the real `messages` from useChat above.
+	// 💰 It only exists so the page renders (the empty state) before you wire it up.
+	const messages = []
 
 	return (
 		<div className="space-y-4">
@@ -43,31 +44,34 @@ export function ComparisonChat({
 			) : (
 				<div className="space-y-6">
 					{messages.map((m) => {
-						// 🐨 This callback is the exercise — the message-parts logic is yours
-						//    to write. Walk each message and return the right (pre-built)
-						//    component, as a top-to-bottom ladder:
-						//      - a user message    → a UserBubble
-						//      - an assistant turn → find its structured-output part, then
-						//        render its comparison, its error, or a spinner while it's
-						//        still streaming.
-						//    Key each returned element with `m.id`, and replace `return null`.
+						// 🐨 Return the right thing for this message:
+						//      - a user turn      → <UserBubble key={m.id} text={getUserText(m.parts)} />
+						//      - an assistant turn → find its structured-output part; if it has none
+						//        yet, render nothing. Otherwise show the error card or the
+						//        comparison card.
+						//    Key every returned element with `m.id`.
 						//
-						//    (Why walk `messages`, not `partial`/`final`? Those only ever
-						//    tracked the *latest* reply — that's why older comparisons vanished.
-						//    Here each assistant turn owns its own part, so old cards stay put.)
+						// 💰 Find the part:
+						//      const part = m.parts.find((p) => p.type === 'structured-output')
+						//    Bail out early when it's missing — `if (!part) return` — so a turn
+						//    that's still streaming other chunks doesn't flash an empty card.
+						//    Once found, the part carries: status ('streaming' | 'complete' |
+						//    'error'), partial, data, and errorMessage.
 						//
-						// 💰 The part is in `m.parts`, found by matching
-						//    `p.type === 'structured-output'`. It carries:
-						//      status: 'streaming' | 'complete' | 'error'
-						//      partial, data, errorMessage
-						//    The comparison to render is `data ?? partial` (empty `{}` until the
-						//    first tokens land — guard with `Object.keys(...).length`).
+						// 💰 The comparison to render is `part.data ?? part.partial`. Pass it as
+						//    `comparison ?? {}` — it's empty until the first tokens land, and the
+						//    table renders skeletons for whatever hasn't streamed in yet.
 						//
 						// 💰 The pre-built components + their props (all defined below):
-						//      <UserBubble key={m.id} text={getUserText(m.parts)} />
 						//      <ComparisonErrorCard key={m.id} message={part.errorMessage} />
-						//      <ComparisonCard key={m.id} comparison={comparison} products={products} />
-						//      <TurnSpinner key={m.id} />
+						//      <ComparisonCard key={m.id} comparison={comparison ?? {}} products={products} />
+
+						// 🐨 These `void`s just keep the pre-built components compiling until
+						//    you use them — delete each one as you return the matching component.
+						void getUserText
+						void UserBubble
+						void ComparisonCard
+						void ComparisonErrorCard
 						return null
 					})}
 				</div>
@@ -103,15 +107,14 @@ export function ComparisonChat({
 	)
 }
 
-// 🐨 These pre-built components are referenced once you wire the message list
-//    above. Drop each `void` as you use it.
-void getUserText
-void UserBubble
-void ComparisonCard
-void TurnSpinner
-void ComparisonErrorCard
-
 // ─── Pre-built presentation — you don't write any of this ────────────────────
+
+function getUserText(parts: ReadonlyArray<{ type: string; content?: string }>) {
+	return parts
+		.filter((p) => p.type === 'text')
+		.map((p) => p.content ?? '')
+		.join('')
+}
 
 function UserBubble({ text }: { text: string }) {
 	return (
@@ -144,15 +147,6 @@ function EmptyState() {
 			<div className="mt-2 text-xs text-gray-400">
 				Try "What's the best value for the money?" or "Which is most durable?"
 			</div>
-		</div>
-	)
-}
-
-function TurnSpinner() {
-	return (
-		<div className="flex flex-col items-center justify-center gap-3 py-12 text-gray-500 dark:text-gray-400">
-			<Loader2 className="h-8 w-8 animate-spin text-amber-600" />
-			<div className="text-sm">Starting the comparison…</div>
 		</div>
 	)
 }

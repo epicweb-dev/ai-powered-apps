@@ -9,3 +9,5 @@ Great — go refresh for a minute before the last step.
 > The streaming feels right immediately. But I caught a problem: when a customer asks a second question, the first comparison just *vanishes*. A few testers ended up re-asking the same things. Let's fix that.
 
 Last step: multi-turn structured output, where every answer keeps its place in the conversation instead of replacing the one before it.
+
+🧝‍♀️ Kellie already built the presentational pieces for that step — a user bubble, a comparison card, and an error card, plus a `getUserText` helper — and wired them into `comparison-chat.tsx`. Next step you won't write any markup; you'll just walk the conversation and pick which one to render for each message.

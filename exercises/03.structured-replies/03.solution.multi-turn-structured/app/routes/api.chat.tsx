@@ -64,9 +64,6 @@ export const action = async ({ request }: Route.ActionArgs) => {
 			subscribeToRestock,
 			getShippingEstimate,
 		],
-		modelOptions: {
-			reasoning: { effort: 'medium' },
-		},
 	})
 	return toServerSentEventsResponse(stream)
 }

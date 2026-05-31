@@ -27,8 +27,6 @@
     "@react-router/node": "^7.9.5",
     "@react-router/serve": "^7.9.5",
     "@tanstack/ai": "^0.22.1",
-    "@tanstack/ai-code-mode": "^0.1.22",
-    "@tanstack/ai-isolate-node": "^0.1.22",
     "@tanstack/ai-openrouter": "^0.9.8",
     "@tanstack/ai-react": "^0.12.1",
     "isbot": "^5.1.27",
