@@ -1,5 +1,5 @@
 import { useChat, fetchServerSentEvents } from '@tanstack/ai-react'
-import { AlertCircle, Loader2, Send } from 'lucide-react'
+import { AlertCircle, Send } from 'lucide-react'
 import { useState } from 'react'
 import { ComparisonTable } from '#app/components/comparison-table.tsx'
 import {
@@ -13,13 +13,6 @@ type ProductSummary = {
 	brand: { name: string }
 	imageUrl: string
 	price: number
-}
-
-function getUserText(parts: ReadonlyArray<{ type: string; content?: string }>) {
-	return parts
-		.filter((p) => p.type === 'text')
-		.map((p) => p.content ?? '')
-		.join('')
 }
 
 export function ComparisonChat({
@@ -48,15 +41,17 @@ export function ComparisonChat({
 						}
 
 						const part = m.parts.find((p) => p.type === 'structured-output')
-						const comparison = part?.data ?? part?.partial
+						if (!part) {
+							return
+						}
 
-						if (part?.status === 'error') {
+						const comparison = part.data ?? part.partial
+
+						if (part.status === 'error') {
 							return <ComparisonErrorCard key={m.id} message={part.errorMessage} />
 						}
-						if (comparison && Object.keys(comparison).length > 0) {
-							return <ComparisonCard key={m.id} comparison={comparison} products={products} />
-						}
-						return <TurnSpinner key={m.id} />
+
+						return <ComparisonCard key={m.id} comparison={comparison ?? {}} products={products} />
 					})}
 				</div>
 			)}
@@ -93,6 +88,13 @@ export function ComparisonChat({
 
 // ─── Pre-built presentation — you don't write any of this ────────────────────
 
+function getUserText(parts: ReadonlyArray<{ type: string; content?: string }>) {
+	return parts
+		.filter((p) => p.type === 'text')
+		.map((p) => p.content ?? '')
+		.join('')
+}
+
 function UserBubble({ text }: { text: string }) {
 	return (
 		<div className="flex justify-end">
@@ -124,15 +126,6 @@ function EmptyState() {
 			<div className="mt-2 text-xs text-gray-400">
 				Try "What's the best value for the money?" or "Which is most durable?"
 			</div>
-		</div>
-	)
-}
-
-function TurnSpinner() {
-	return (
-		<div className="flex flex-col items-center justify-center gap-3 py-12 text-gray-500 dark:text-gray-400">
-			<Loader2 className="h-8 w-8 animate-spin text-amber-600" />
-			<div className="text-sm">Starting the comparison…</div>
 		</div>
 	)
 }
