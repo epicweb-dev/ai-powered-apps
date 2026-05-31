@@ -76,8 +76,15 @@ export function ProductChat() {
 			const res = await fetch('/api/chat', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
+				// TanStack AI validates this against AG-UI's RunAgentInput, so even
+				// a hand-rolled request needs threadId/runId, a per-message id, and
+				// (here empty) tools/context arrays.
 				body: JSON.stringify({
-					messages: [{ role: 'user', content: draft }],
+					threadId: crypto.randomUUID(),
+					runId: crypto.randomUUID(),
+					messages: [{ id: crypto.randomUUID(), role: 'user', content: draft }],
+					tools: [],
+					context: [],
 				}),
 			})
 			if (!res.ok) {
