@@ -25,7 +25,7 @@ export type Product = NonNullable<Awaited<ReturnType<typeof getProductById>>>
  *   sure you have every required field. If something is missing, ask the
  *   customer — do not guess.`
  */
-export const GLOBAL_SYSTEM_PROMPT = ''
+export const GLOBAL_SYSTEM_PROMPT = ``
 
 /**
  * 🐨 Fill in `buildProductPrompt` so it returns a string describing the
