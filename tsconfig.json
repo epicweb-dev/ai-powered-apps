@@ -1,17 +1,13 @@
 {
   "compilerOptions": {
-    "tsBuildInfoFile": "node_modules/tsconfig.tsbuildinfo"
+    "tsBuildInfoFile": "node_modules/tsconfig.tsbuildinfo",
+    "skipLibCheck": true
   },
-  "files": [],
+  "files": [
+    "empty.d.ts"
+  ],
   "exclude": [
     "node_modules"
   ],
-  "references": [
-    {
-      "path": "exercises/01.example/01.problem.hello"
-    },
-    {
-      "path": "exercises/01.example/01.solution.goodbye"
-    }
-  ]
+  "references": []
 }
