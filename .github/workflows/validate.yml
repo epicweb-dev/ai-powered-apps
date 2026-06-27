@@ -31,6 +31,7 @@ jobs:
           # Kept getting npm ECOMPROMISED errors on windows. This fixed it.
           npm_config_cache: ${{ runner.temp }}/npm-cache
           SKIP_PLAYGROUND: true
+          npm_config_package_lock: false
 
       - name: ʦ TypeScript
         run: npm run typecheck
@@ -57,7 +58,7 @@ jobs:
           node-version: 26
 
       - name: 📦 Install dependencies
-        run: npm install
+        run: npm install --package-lock=false
 
       - name: 🧪 Run tests
         id: run_tests

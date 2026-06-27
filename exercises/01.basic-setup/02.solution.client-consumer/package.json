@@ -22,7 +22,7 @@
   "dependencies": {
     "@dotenvx/dotenvx": "^1.51.0",
     "@epic-web/workshop-utils": "^6.41.3",
-    "@prisma/adapter-better-sqlite3": "^6.16.2",
+    "@prisma/adapter-better-sqlite3": "^7.8.0",
     "@prisma/client": "^6.16.2",
     "@react-router/node": "^7.9.5",
     "@react-router/serve": "^7.9.5",
