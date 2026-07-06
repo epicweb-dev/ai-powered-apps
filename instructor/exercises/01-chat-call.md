@@ -27,7 +27,7 @@ The scaffold already imports everything they consume (`chat`, `toServerSentEvent
 
 1. Drop their `OPENROUTER_API_KEY` into `.env`.
 2. In `api.chat.tsx`, replace the 501 action so it:
-   - Builds the OpenRouter adapter with `openRouterText('openai/gpt-5.5')` (the adapter reads `OPENROUTER_API_KEY` from env automatically)
+   - Builds the OpenRouter adapter with `openRouterText('openai/gpt-oss-120b:free')` (the adapter reads `OPENROUTER_API_KEY` from env automatically)
    - Calls `MessagesPayload.safeParse(await request.json())` to validate the incoming body
    - On `parsed.success === false`, returns `new Response(parsed.error.message, { status: 400 })`
    - On success, destructures `messages` from `parsed.data`
@@ -47,14 +47,14 @@ The scaffold already imports everything they consume (`chat`, `toServerSentEvent
 ## Common stumbles
 
 - Forgot to set `OPENROUTER_API_KEY` → 401 from upstream in the red bubble. README's 🚨 Alfred section calls this out.
-- Wrong model id (`gpt-5.5` vs `openai/gpt-5.5`) → 400 from OpenRouter (it expects the provider prefix).
+- Wrong model id (`gpt-oss-120b:free` vs `openai/gpt-oss-120b:free`) → 400 from OpenRouter (it expects the provider prefix).
 - Putting the `safeParse` check after the destructure → defeats the purpose. Must run on the raw `await request.json()` output.
 - Returning the full Zod error object instead of just `parsed.error.message` → noisier than it needs to be in the panel.
 - Forgetting the early return on the failure branch → TypeScript can't narrow `parsed.data`.
 
 ## Locked decisions
 
-1. **Default model:** `openai/gpt-5.5`
+1. **Default model:** `openai/gpt-oss-120b:free`
 2. **Validation:** Zod via the pre-built `MessagesPayload` schema in `app/schemas/chat.ts`. Learners never write a schema.
 3. **Error response body:** the plain `parsed.error.message` string (renders directly in the panel's red error bubble)
 
@@ -89,7 +89,7 @@ import { openRouterText } from '@tanstack/ai-openrouter'
 import { MessagesPayload } from '#app/schemas/chat.js'
 import { type Route } from './+types/api.chat'
 
-// 🐨 Build the OpenRouter adapter with `openRouterText('openai/gpt-5.5')`.
+// 🐨 Build the OpenRouter adapter with `openRouterText('openai/gpt-oss-120b:free')`.
 //    The adapter reads OPENROUTER_API_KEY from your environment automatically.
 // 🐨 In the action: validate `await request.json()` with the pre-imported
 //    `MessagesPayload.safeParse(...)`. On failure return a 400 with
@@ -111,7 +111,7 @@ export const action = async ({ request }: Route.ActionArgs) => {
 **Focal change in the solution** (~11 lines, no imports, no Zod authoring):
 
 ```tsx
-const adapter = openRouterText('openai/gpt-5.5')
+const adapter = openRouterText('openai/gpt-oss-120b:free')
 
 export const action = async ({ request }: Route.ActionArgs) => {
 	const parsed = MessagesPayload.safeParse(await request.json())

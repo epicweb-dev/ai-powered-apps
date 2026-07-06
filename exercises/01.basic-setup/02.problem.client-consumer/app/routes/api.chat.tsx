@@ -6,7 +6,7 @@ import {
 import { openRouterText } from '@tanstack/ai-openrouter'
 import { type Route } from './+types/api.chat'
 
-const adapter = openRouterText('openai/gpt-5.5')
+const adapter = openRouterText('openai/gpt-oss-120b:free')
 
 export const action = async ({ request }: Route.ActionArgs) => {
 	const { messages, threadId } = await chatParamsFromRequest(request)

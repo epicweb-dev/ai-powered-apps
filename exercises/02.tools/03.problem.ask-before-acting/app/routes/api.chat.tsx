@@ -20,7 +20,7 @@ import {
 import { showVariations } from '#app/tools/variations.ts'
 import { type Route } from './+types/api.chat'
 
-const adapter = openRouterText('openai/gpt-5.5')
+const adapter = openRouterText('openai/gpt-oss-120b:free')
 
 // 🐨 The new tool's *definition* is imported above. Add `addToCartDef` to the
 //    `tools: [...]` array on `chat({...})` below — just like you did with

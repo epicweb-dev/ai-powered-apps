@@ -30,3 +30,6 @@ data.db
 *.local/
 
 saved-playgrounds
+
+# stashed playground .env + database, persisted across exercise moves
+epicshop/.playground-data/

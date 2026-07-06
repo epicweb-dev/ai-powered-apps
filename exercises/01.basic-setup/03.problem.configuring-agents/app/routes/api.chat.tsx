@@ -12,7 +12,7 @@ import {
 import { PageForwardedProps } from '#app/schemas/chat.js'
 import { type Route } from './+types/api.chat'
 
-const adapter = openRouterText('openai/gpt-5.5')
+const adapter = openRouterText('openai/gpt-oss-120b:free')
 
 /**
  * 🐨 In this exercise you will give the bot a role, product awareness, and

@@ -18,7 +18,7 @@ import {
 } from '#app/tools/products.ts'
 import { type Route } from './+types/api.chat'
 
-const adapter = openRouterText('openai/gpt-5.5')
+const adapter = openRouterText('openai/gpt-oss-120b:free')
 
 // 🐨 The new client tool's *definition* is imported above. The server doesn't
 //    run `navigateTo` itself — it just needs to tell the model the tool

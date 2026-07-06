@@ -18,7 +18,7 @@ On the server side, a working chat route only needs a few lines:
 import { chat, chatParamsFromRequest, toServerSentEventsResponse } from '@tanstack/ai'
 import { openRouterText } from '@tanstack/ai-openrouter'
 
-const adapter = openRouterText('openai/gpt-5.5')
+const adapter = openRouterText('openai/gpt-oss-120b:free')
 
 export const action = async ({ request }: Route.ActionArgs) => {
 	const { messages } = await chatParamsFromRequest(request)
@@ -29,7 +29,7 @@ export const action = async ({ request }: Route.ActionArgs) => {
 
 Four things to notice here:
 
-1. **The adapter already knows which model to use.** When you call `openRouterText('openai/gpt-5.5')` you get back an adapter that is locked to that model. The `chat()` call does not take a separate `model` field.
+1. **The adapter already knows which model to use.** When you call `openRouterText('openai/gpt-oss-120b:free')` you get back an adapter that is locked to that model. The `chat()` call does not take a separate `model` field.
 2. **The API key is read from `process.env.OPENROUTER_API_KEY` automatically.** You do not pass it in.
 3. **`chat()` returns a stream of small pieces, not a finished response.**
 4. **`toServerSentEventsResponse(stream)` turns that stream into something the browser can read.** It uses Server-Sent Events (SSE), which is a simple way for the server to push data to the browser over time.

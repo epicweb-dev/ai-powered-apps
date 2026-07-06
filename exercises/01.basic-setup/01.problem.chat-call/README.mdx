@@ -13,7 +13,7 @@ In `app/routes/api.chat.tsx`, two things are **already imported for you**:
 
 You will not touch the imports. You will:
 
-1. 🐨 Build the OpenRouter adapter by calling `openRouterText('openai/gpt-5.5')`. The adapter reads `OPENROUTER_API_KEY` from your environment by itself, so you do not pass the key in.
+1. 🐨 Build the OpenRouter adapter by calling `openRouterText('openai/gpt-oss-120b:free')`. The adapter reads `OPENROUTER_API_KEY` from your environment by itself, so you do not pass the key in.
 2. 🐨 Replace the body of the `action` so that it:
    - Calls `await chatParamsFromRequest(request)` to parse and validate the AG-UI request body. On a malformed body it throws a `Response` with status 400 — React Router 7 surfaces that to the client automatically, so no `try/catch` needed.
    - Destructures `messages` from the returned params.
@@ -33,7 +33,7 @@ OPENROUTER_API_KEY=your-key-here
 
 ## 🦉 About the model id
 
-OpenRouter expects model ids that start with the provider name. We use `openai/gpt-5.5`, not just `gpt-5.5`. Other models follow the same pattern: `anthropic/claude-...`, `google/gemini-...`, and so on. The model is set when you call `openRouterText(...)`, so switching to a different model later is a one-line change.
+OpenRouter expects model ids that start with the provider name. We use `openai/gpt-oss-120b:free`, not just `gpt-oss-120b:free`. Other models follow the same pattern: `anthropic/claude-...`, `google/gemini-...`, and so on. The model is set when you call `openRouterText(...)`, so switching to a different model later is a one-line change.
 
 ## 🦉 About `chatParamsFromRequest`
 
@@ -56,5 +56,5 @@ Open any product page, click the small chat bubble in the bottom-right corner, t
 ## 🚨 If you get stuck
 
 - **`401` shows up in the red bubble** → `OPENROUTER_API_KEY` is not loaded. Restart the dev server after you edit `.env`.
-- **`400` shows up and the error mentions the model** → the model id is wrong. It should be `openai/gpt-5.5`, not just `gpt-5.5`.
+- **`400` shows up and the error mentions the model** → the model id is wrong. It should be `openai/gpt-oss-120b:free`, not just `gpt-oss-120b:free`.
 - **The server log shows a crash** → check that you're calling `await chatParamsFromRequest(request)` (not `request.json()` directly) and `await`ing it.

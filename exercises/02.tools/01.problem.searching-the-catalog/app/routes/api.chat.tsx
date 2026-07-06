@@ -17,7 +17,7 @@ import {
 } from '#app/tools/products.ts'
 import { type Route } from './+types/api.chat'
 
-const adapter = openRouterText('openai/gpt-5.5')
+const adapter = openRouterText('openai/gpt-oss-120b:free')
 
 /**
  * 🐨 The three product tools above are now imported for you. Hand them to
