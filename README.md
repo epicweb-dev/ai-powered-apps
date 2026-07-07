@@ -4,7 +4,7 @@
     Build a streaming AI shopping assistant on top of a real React Router app
   </strong>
   <p>
-    Take a working React Router 7 e-commerce app and progressively layer in a production-grade AI shopping assistant: a streaming chat endpoint, a polished client UI built on <code>useChat</code>, page-aware system prompts, tools that hit a real Prisma catalog, structured output, approval flows for mutating actions, and finally code-mode orchestration running in a V8 isolate. By the end you've shipped real AI features into a real app — not a toy demo.
+    Take a working React Router 7 e-commerce app and progressively layer in a production-grade AI shopping assistant: a streaming chat endpoint, a polished client UI built on <code>useChat</code>, page-aware system prompts, tools that hit a real Prisma catalog, structured output, and approval flows for mutating actions. By the end you've shipped real AI features into a real app — not a toy demo.
   </p>
 </div>
 
@@ -66,10 +66,6 @@ These are optional but useful to skim before showing up:
 - [git][git] v2.18 or greater
 - [NodeJS][node] v24 or greater
 - [npm][npm] v9 or greater
-- A native C++ build toolchain (for the code-mode exercise — V8 isolates via `isolated-vm`):
-  - **macOS:** Xcode Command Line Tools (`xcode-select --install`)
-  - **Linux:** `build-essential`
-  - **Windows:** Visual Studio C++ build tools (the `npm install` should handle this automatically with the bundled `windows-build-tools`)
 
 All of these must be available in your `PATH`. To verify:
 
