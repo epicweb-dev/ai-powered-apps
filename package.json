@@ -15,6 +15,10 @@
       "host": "www.epicweb.dev",
       "displayName": "EpicWeb.dev",
       "displayNameShort": "Epic Web"
+    },
+    "forms": {
+      "workshop": "https://docs.google.com/forms/d/e/1FAIpQLSe8hQTf_CaAhrbYyaYBvgz6iicfMzDiKcLk6_ZjQWJip_-UNw/viewform?hl=en&embedded=true&entry.1841054081={workshopTitle}",
+      "exercise": "https://docs.google.com/forms/d/e/1FAIpQLScNqiw2_F6j0oSuczCH6vkniT7glQxk39qvYn2IwN9IbOUiGA/viewform?hl=en&embedded=true&entry.240391449={workshopTitle}&entry.353813257={exerciseTitle}"
     }
   },
   "type": "module",
