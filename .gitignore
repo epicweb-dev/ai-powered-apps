@@ -3,7 +3,11 @@ node_modules
 # logs
 *.log
 
-# non-npm JavaScript lockfiles
+# lockfiles: not committed so each machine resolves its own OS-native binaries
+# (rollup/esbuild/@tailwindcss/oxide/lightningcss/unrs are platform-specific and
+# a committed lockfile pins only the generating OS's binaries -> npm/cli#4828).
+# Deps are pinned to exact versions in every package.json instead.
+package-lock.json
 yarn.lock
 pnpm-lock.yaml
 bun.lock
