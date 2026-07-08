@@ -20,4 +20,15 @@ if (playgroundDir) {
 			fs.copyFileSync(stashed, dest)
 		}
 	}
+
+	// First exercise (nothing stashed yet): seed .env from the .env.example that
+	// ships with every exercise, so the app boots out of the box (DATABASE_URL is
+	// set). The chat stays inert until the student pastes their OPENROUTER_API_KEY.
+	// Never overwrite an existing .env — the stash/restore above keeps the key.
+	const env = path.join(playgroundDir, '.env')
+	const envExample = path.join(playgroundDir, '.env.example')
+	if (!fs.existsSync(env) && fs.existsSync(envExample)) {
+		fs.copyFileSync(envExample, env)
+		console.log('📝 created playground .env from .env.example')
+	}
 }
