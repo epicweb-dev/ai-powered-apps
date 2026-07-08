@@ -50,16 +50,16 @@
     "git": ">=2.18.0"
   },
   "devDependencies": {
-    "@epic-web/config": "^1.24.1",
-    "@tanstack/ai": "^0.22.1",
-    "@tanstack/ai-client": "^0.13.0",
-    "@tanstack/ai-event-client": "^0.4.0",
-    "@tanstack/ai-react": "^0.12.1",
-    "@types/node": "^24.3.0",
-    "oxlint": "^1.51.0",
-    "pkgmgr": "^1.1.1",
-    "prettier": "^3.8.1",
-    "typescript": "^5.9.3"
+    "@epic-web/config": "1.24.1",
+    "@tanstack/ai": "0.22.1",
+    "@tanstack/ai-client": "0.13.0",
+    "@tanstack/ai-event-client": "0.4.2",
+    "@tanstack/ai-react": "0.12.1",
+    "@types/node": "24.12.4",
+    "oxlint": "1.67.0",
+    "pkgmgr": "1.1.1",
+    "prettier": "3.8.3",
+    "typescript": "5.9.3"
   },
   "prettier": "@epic-web/config/prettier"
 }
