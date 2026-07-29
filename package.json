@@ -45,6 +45,7 @@
     "extra/*"
   ],
   "overrides": {
+    "@sentry/core": "10.68.0",
     "@sentry/node": "10.68.0",
     "@sentry/profiling-node": "10.68.0",
     "@sentry/react-router": "10.68.0",
