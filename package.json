@@ -44,6 +44,9 @@
     "exercises/*/*",
     "extra/*"
   ],
+  "overrides": {
+    "better-sqlite3": "13.0.2"
+  },
   "engines": {
     "node": ">=24.0.0",
     "npm": ">=8.16.0",
