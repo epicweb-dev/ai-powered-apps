@@ -1,8 +1,10 @@
 // Runs AFTER epicshop copies an exercise over the playground. Restores the .env
 // and prisma/data.db that pre-set-playground.js stashed, so the student's API key
 // and database survive every move between exercises.
+import console from 'node:console'
 import fs from 'node:fs'
 import path from 'node:path'
+import process from 'node:process'
 
 const playgroundDir = process.env.EPICSHOP_PLAYGROUND_DEST_DIR
 if (playgroundDir) {
