@@ -5,6 +5,7 @@
 // persist across the whole workshop.
 import fs from 'node:fs'
 import path from 'node:path'
+import process from 'node:process'
 
 const playgroundDir = process.env.EPICSHOP_PLAYGROUND_DEST_DIR
 if (playgroundDir) {
