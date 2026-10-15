@@ -8,6 +8,7 @@
   },
   "scripts": {
     "build": "react-router build",
+    "predev": "node prisma/ensure-db.js",
     "dev": "react-router dev",
     "start": "react-router-serve ./build/server/index.js",
     "typecheck": "react-router typegen && tsc",
