@@ -5,13 +5,33 @@ import { execSync } from 'node:child_process'
 import console from 'node:console'
 import fs from 'node:fs'
 import process from 'node:process'
+import { DatabaseSync } from 'node:sqlite'
+
+const dbPath = 'prisma/data.db'
 
 if (!fs.existsSync('.env') && fs.existsSync('.env.example')) {
 	fs.copyFileSync('.env.example', '.env')
 	console.log('📝 created .env from .env.example')
 }
 
-if (!fs.existsSync('prisma/data.db')) {
+// The app creates an empty `data.db` when it starts without a database, so
+// check for a table, not only for the file.
+function hasTables() {
+	if (!fs.existsSync(dbPath)) return false
+	const db = new DatabaseSync(dbPath, { readOnly: true })
+	try {
+		const table = db
+			.prepare(
+				"SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'Category'",
+			)
+			.get()
+		return Boolean(table)
+	} finally {
+		db.close()
+	}
+}
+
+if (!hasTables()) {
 	console.log('🗄  creating and seeding the database (first run only)...')
 	try {
 		// The Prisma CLI reads a SQLite path relative to `prisma/schema.prisma`.
@@ -26,7 +46,7 @@ if (!fs.existsSync('prisma/data.db')) {
 		})
 	} catch (error) {
 		// Remove a half-made database so that the next start tries again.
-		fs.rmSync('prisma/data.db', { force: true })
+		fs.rmSync(dbPath, { force: true })
 		throw error
 	}
 }
