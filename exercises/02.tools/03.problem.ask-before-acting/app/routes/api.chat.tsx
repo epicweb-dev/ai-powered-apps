@@ -20,7 +20,7 @@ import {
 import { showVariations } from '#app/tools/variations.ts'
 import { type Route } from './+types/api.chat'
 
-const adapter = openRouterText('openai/gpt-oss-120b:free')
+const adapter = openRouterText('nvidia/nemotron-3-super-120b-a12b:free')
 
 // 🐨 The new tool's *definition* is imported above. Add `addToCartDef` to the
 //    `tools: [...]` array on `chat({...})` below — just like you did with
@@ -29,7 +29,7 @@ const adapter = openRouterText('openai/gpt-oss-120b:free')
 void addToCartDef
 
 export const action = async ({ request }: Route.ActionArgs) => {
-	const { messages, forwardedProps, threadId } =
+	const { messages, forwardedProps, threadId, runId, parentRunId, resume } =
 		await chatParamsFromRequest(request)
 	const props = PageForwardedProps.safeParse(forwardedProps)
 	if (!props.success) {
@@ -48,6 +48,9 @@ export const action = async ({ request }: Route.ActionArgs) => {
 		systemPrompts,
 		messages,
 		threadId,
+		runId,
+		parentRunId,
+		resume,
 		tools: [
 			searchProducts,
 			findSimilarProducts,
@@ -55,9 +58,7 @@ export const action = async ({ request }: Route.ActionArgs) => {
 			showVariations,
 			navigateToDef,
 		],
-		modelOptions: {
-			reasoning: { effort: 'medium' },
-		},
+		reasoning: 'medium',
 	})
 	return toServerSentEventsResponse(stream)
 }

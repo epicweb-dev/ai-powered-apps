@@ -39,6 +39,8 @@ A **server tool** is one where you call `.server(execute)`. The server runs the 
 
 A **client tool** is one where you call `.client(execute)`. The model still decides when to call it, but TanStack AI tells the *browser* to run the callback — not the server. The result then gets sent back into the conversation the same way.
 
+How does the result get back? The server pauses the run and tells the browser which tool to run. `useChat` runs your callback and then sends a second request that carries the result. That request continues the paused run. This is why `api.chat.tsx` now also forwards `runId`, `parentRunId`, and `resume` to `chat()`. Without them, the server cannot match the result to the paused run.
+
 Both kinds of tool look identical to the model. Both need their *definition* (name, description, schema) registered with `chat()` on the server so the model knows they exist. The only difference is **where the code runs** when the model picks it.
 
 Server tools are for things only the server can do (database reads, secrets, paid APIs). Client tools are for things only the browser can do (routing, scroll, localStorage, the user's clipboard).

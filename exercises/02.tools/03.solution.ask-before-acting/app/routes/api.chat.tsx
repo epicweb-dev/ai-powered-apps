@@ -20,10 +20,10 @@ import {
 import { showVariations } from '#app/tools/variations.ts'
 import { type Route } from './+types/api.chat'
 
-const adapter = openRouterText('openai/gpt-oss-120b:free')
+const adapter = openRouterText('nvidia/nemotron-3-super-120b-a12b:free')
 
 export const action = async ({ request }: Route.ActionArgs) => {
-	const { messages, forwardedProps, threadId } =
+	const { messages, forwardedProps, threadId, runId, parentRunId, resume } =
 		await chatParamsFromRequest(request)
 	const props = PageForwardedProps.safeParse(forwardedProps)
 	if (!props.success) {
@@ -42,6 +42,9 @@ export const action = async ({ request }: Route.ActionArgs) => {
 		systemPrompts,
 		messages,
 		threadId,
+		runId,
+		parentRunId,
+		resume,
 		tools: [
 			searchProducts,
 			findSimilarProducts,
@@ -50,9 +53,7 @@ export const action = async ({ request }: Route.ActionArgs) => {
 			navigateToDef,
 			addToCartDef,
 		],
-		modelOptions: {
-			reasoning: { effort: 'medium' },
-		},
+		reasoning: 'medium',
 	})
 	return toServerSentEventsResponse(stream)
 }

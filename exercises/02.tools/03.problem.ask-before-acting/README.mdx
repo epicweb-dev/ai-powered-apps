@@ -25,20 +25,23 @@ This is where the new concept lives. You'll do three things here.
 
 4. 🐨 Build the `addToCart` client tool with `addToCartDef.client(execute)`. The 🐨 block above the `useChat({...})` call walks you through it — same shape as the `navigateTo` tool just above, but the callback closes over `cart` (from `useCart()`) and calls the pre-built `addProductToCart(...)` helper to do the real work.
 5. 🐨 Add `addToCart` to the `tools: [...]` array on `useChat({...})`.
-6. 🐨 Find the **approval prompt UI** further down in the `messages.map(...)` block (look for the `🛒 Add to cart?` card). The card is already built; you just need to wire the **Yes** and **No** buttons. On click, call `addToolApprovalResponse({ id: approvalId, approved: true })` for Yes and `approved: false` for No. `addToolApprovalResponse` is already destructured from `useChat`; `approvalId` is already in scope inside the card.
+6. 🐨 Find the **approval prompt UI** further down in the `messages.map(...)` block (look for the `🛒 Add to cart?` card). The card is already built, and it already finds its `approval` in `interrupts`. You only wire the **Yes** and **No** buttons: call `approval.resolveInterrupt(true)` for Yes and `approval.resolveInterrupt(false)` for No.
 
 ## 🦉 How approvals work in TanStack AI
 
 The flow looks like this:
 
 1. Model decides to call `addToCart` with some args.
-2. Because the tool's definition has `needsApproval: true`, TanStack AI **does not** run your `.client(...)` callback. Instead it emits a `tool-call` part with `state: 'approval-requested'` and an `approval` object containing an `id`.
-3. Your UI sees that part, renders Yes/No buttons, and the customer clicks.
-4. The button's click handler calls `addToolApprovalResponse({ id, approved: true | false })`.
-5. If approved, **then** TanStack AI runs your `.client(...)` callback and the result goes back to the model.
-6. If denied, the callback never runs. The model is told the request was rejected and can respond accordingly ("ok, I won't add it").
+2. Because the tool's definition has `needsApproval: true`, TanStack AI **does not** run your `.client(...)` callback. The server stops the run with an **interrupt**: a decision that a person must make before the run can continue.
+3. `useChat` puts that decision in `interrupts`. A tool approval has `kind: 'tool-approval'`, the `toolCallId` of its tool call, and the model's arguments in `originalArgs`.
+4. Your UI finds the approval for the tool call, renders Yes/No buttons, and the customer clicks.
+5. The click handler calls `approval.resolveInterrupt(true | false)`. `useChat` then sends a new request that continues the paused run.
+6. If approved, **then** TanStack AI runs your `.client(...)` callback and the result goes back to the model.
+7. If denied, the callback never runs. The model is told the request was rejected and can respond accordingly ("ok, I won't add it").
 
-This separation — definition says "needs approval", UI surfaces the request, response unblocks (or doesn't) — is the entire pattern. Once you've wired it once you can apply it to any "this tool *does something*" tool you build later.
+This separation — definition says "needs approval", the run pauses on an interrupt, your answer continues it — is the entire pattern. Once you've wired it once you can apply it to any "this tool *does something*" tool you build later.
+
+🦉 "No" is not the same as "cancel". `resolveInterrupt(false)` is an answer: the run continues and the model sees the rejection. `approval.cancel()` drops the decision without an answer. For a Yes/No card, you want `resolveInterrupt`.
 
 ## 🦉 Why the approval prompt shows fields like `productName`
 
@@ -48,8 +51,9 @@ This is why `productName` is in the tool's `inputSchema` even though the cart al
 
 ## 📜 Docs
 
-- 📜 [TanStack AI — tool approvals](https://tanstack.com/ai/latest/docs/tools/tool-approval)
-- 📜 `addToolApprovalResponse` — destructure it from `useChat({...})`
+- 📜 [TanStack AI — interrupts overview](https://tanstack.com/ai/latest/docs/interrupts/overview)
+- 📜 [TanStack AI — tool approval](https://tanstack.com/ai/latest/docs/interrupts/tool-approval)
+- 📜 `interrupts` — destructure it from `useChat({...})`
 
 ## ✅ How to know it is working
 
@@ -63,6 +67,7 @@ Open the chat panel and try these:
 
 - **TypeScript complains that `addToCartDef` is not exported** → you haven't built it yet in `app/tools/cart.ts`. The 🐨 block there is the spec.
 - **The bot adds things to the cart with no prompt** → you forgot `needsApproval: true` on the tool definition. Without that field, the tool runs the moment the model picks it.
-- **The Yes/No buttons render but clicking does nothing** → the `onClick` handlers in the approval card still have the `// 🐨` placeholders. Replace them with calls to `addToolApprovalResponse({ id: approvalId, approved: true | false })`.
+- **The Yes/No buttons render but clicking does nothing** → the `onClick` handlers in the approval card still have the `// 🐨` placeholders. Replace them with `approval.resolveInterrupt(true)` and `approval.resolveInterrupt(false)`.
+- **TypeScript says `'addToCart'` has no overlap with `'navigateTo'`** → `addToCart` is not in the `useChat({ tools: [...] })` array yet. The message parts are typed from that array.
 - **The bot says it added something but the cart is empty** → either `addToCart` isn't in the `useChat({ tools: [...] })` array, or the `.client(...)` callback didn't actually call `addProductToCart(...)`. Both are needed.
 - **The model picks weird sizes/colors** → that's actually fine for this exercise — the approval prompt is the safety net. The customer rejects, and the model tries again. If you want better defaults, you could extend the system prompt to nudge the model toward common sizes.

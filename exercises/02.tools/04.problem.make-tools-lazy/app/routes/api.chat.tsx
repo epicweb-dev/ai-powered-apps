@@ -25,7 +25,7 @@ import { getSizeGuide } from '#app/tools/size-guide.ts'
 import { showVariations } from '#app/tools/variations.ts'
 import { type Route } from './+types/api.chat'
 
-const adapter = openRouterText('openai/gpt-oss-120b:free')
+const adapter = openRouterText('nvidia/nemotron-3-super-120b-a12b:free')
 
 // 🐨 Five new lazy tools are imported above (return policy, size guide, care
 //    instructions, restock, and the shipping estimate you'll build). Register
@@ -40,7 +40,7 @@ void getShippingEstimate
 void getSizeGuide
 
 export const action = async ({ request }: Route.ActionArgs) => {
-	const { messages, forwardedProps, threadId } =
+	const { messages, forwardedProps, threadId, runId, parentRunId, resume } =
 		await chatParamsFromRequest(request)
 	const props = PageForwardedProps.safeParse(forwardedProps)
 	if (!props.success) {
@@ -59,6 +59,9 @@ export const action = async ({ request }: Route.ActionArgs) => {
 		systemPrompts,
 		messages,
 		threadId,
+		runId,
+		parentRunId,
+		resume,
 		tools: [
 			searchProducts,
 			findSimilarProducts,
@@ -67,9 +70,7 @@ export const action = async ({ request }: Route.ActionArgs) => {
 			navigateToDef,
 			addToCartDef,
 		],
-		modelOptions: {
-			reasoning: { effort: 'medium' },
-		},
+		reasoning: 'medium',
 	})
 	return toServerSentEventsResponse(stream)
 }

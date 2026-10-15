@@ -12,7 +12,7 @@ import {
 import { PageForwardedProps } from '#app/schemas/chat.js'
 import { type Route } from './+types/api.chat'
 
-const adapter = openRouterText('openai/gpt-oss-120b:free')
+const adapter = openRouterText('nvidia/nemotron-3-super-120b-a12b:free')
 
 /**
  * 🐨 In this exercise you will give the bot a role, product awareness, and
@@ -33,10 +33,9 @@ const adapter = openRouterText('openai/gpt-oss-120b:free')
  *       into the `chat()` call so the model sees both the global rules and the
  *       product details. If the product is `null` (either no `productId` or
  *       the id is unknown), pass just `[GLOBAL_SYSTEM_PROMPT]` instead.
- *    5. Add `modelOptions: { reasoning: { effort: 'medium' } }` to the same
- *       `chat()` call. This tells OpenRouter to ask the model to think before
- *       it answers. The thinking shows up in the chat as a separate "thinking"
- *       message part.
+ *    5. Add `reasoning: 'medium'` to the same `chat()` call. This tells
+ *       OpenRouter to ask the model to think before it answers. The thinking
+ *       shows up in the chat as a separate "thinking" message part.
  *
  * 💣 Delete the `void` lines below once you are using the new imports.
  */

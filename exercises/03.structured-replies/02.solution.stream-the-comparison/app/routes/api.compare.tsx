@@ -13,7 +13,7 @@ import {
 } from '#app/tools/products.ts'
 import { type Route } from './+types/api.compare'
 
-const adapter = openRouterText('openai/gpt-oss-120b:free')
+const adapter = openRouterText('nvidia/nemotron-3-super-120b-a12b:free')
 
 export const action = async ({ request }: Route.ActionArgs) => {
 	const { messages, forwardedProps } = await chatParamsFromRequest(request)

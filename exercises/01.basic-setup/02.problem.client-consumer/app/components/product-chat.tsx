@@ -1,7 +1,7 @@
 import { useChat, fetchServerSentEvents } from '@tanstack/ai-react'
+import { TextPart } from '@tanstack/ai-react/ui'
 import { MessageCircle, Send, X } from 'lucide-react'
 import { useState } from 'react'
-import ReactMarkdown from 'react-markdown'
 import { useRouteLoaderData } from 'react-router'
 
 export type ProductChatContext = {
@@ -103,7 +103,7 @@ export function ProductChat() {
 	//    consume them. Delete these `void` calls once `useChat` is wired.
 	void useChat
 	void fetchServerSentEvents
-	void ReactMarkdown
+	void TextPart
 
 	return (
 		<div className="fixed right-6 bottom-6 z-50">
@@ -148,7 +148,7 @@ export function ProductChat() {
 						{/*
 						💰 After deleting the bomb-marked code above, uncomment this
 						   messages list in its place. It walks each message's
-						   `parts` and renders every `text` part through ReactMarkdown
+						   `parts` and renders every `text` part through `TextPart`
 						   so the bot's bold, lists, and other formatting show up
 						   nicely instead of as raw asterisks.
 
@@ -163,7 +163,7 @@ export function ProductChat() {
 							>
 								{m.parts.map((part, i) =>
 									part.type === 'text' ? (
-										<ReactMarkdown key={i}>{part.content}</ReactMarkdown>
+										<TextPart key={i} content={part.content} />
 									) : null,
 								)}
 							</div>

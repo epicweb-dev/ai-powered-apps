@@ -1,7 +1,7 @@
 import { useChat, fetchServerSentEvents } from '@tanstack/ai-react'
+import { TextPart } from '@tanstack/ai-react/ui'
 import { MessageCircle, Send, X } from 'lucide-react'
 import { useState } from 'react'
-import ReactMarkdown from 'react-markdown'
 import { useNavigate, useRouteLoaderData } from 'react-router'
 import { ProductCard } from '#app/components/product-card'
 import { useCart } from '#app/contexts/cart.js'
@@ -64,12 +64,11 @@ export function ProductChat() {
 		},
 	)
 
-	const { messages, sendMessage, isLoading, addToolApprovalResponse } =
-		useChat({
-			connection: fetchServerSentEvents('/api/chat'),
-			forwardedProps: product ? { productId: product.productId } : {},
-			tools: [navigateTo, addToCart],
-		})
+	const { messages, sendMessage, isLoading, interrupts } = useChat({
+		connection: fetchServerSentEvents('/api/chat'),
+		forwardedProps: product ? { productId: product.productId } : {},
+		tools: [navigateTo, addToCart],
+	})
 
 	return (
 		<div className="fixed right-6 bottom-6 z-50">
@@ -109,7 +108,7 @@ export function ProductChat() {
 							>
 								{m.parts.map((part, i) => {
 									if (part.type === 'text') {
-										return <ReactMarkdown key={i}>{part.content}</ReactMarkdown>
+										return <TextPart key={i} content={part.content} />
 									}
 									if (part.type === 'thinking') {
 										return (
@@ -262,74 +261,60 @@ export function ProductChat() {
 											)
 										}
 
-										if (
-											part.state === 'approval-requested' &&
-											part.approval
-										) {
-											const approvalId = part.approval.id
-											const input = (part.input ?? {}) as {
-												productName?: string
-												size?: string
-												color?: string
-												quantity?: number
-											}
-											return (
-												<div
-													key={i}
-													className="mt-2 rounded-lg border border-amber-200 bg-amber-50 p-3 dark:border-amber-900 dark:bg-amber-950"
-												>
-													<div className="mb-1 text-sm font-medium text-gray-900 dark:text-gray-100">
-														🛒 Add to cart?
-													</div>
-													<div className="mb-3 text-xs text-gray-700 dark:text-gray-300">
-														<div>{input.productName ?? 'this product'}</div>
-														<div className="mt-1 opacity-75">
-															size {input.size ?? '–'} · color{' '}
-															{input.color ?? '–'} · qty {input.quantity ?? 1}
+										if (part.name === 'addToCart') {
+											const approval = interrupts.find(
+												(interrupt) =>
+													interrupt.kind === 'tool-approval' &&
+													interrupt.toolCallId === part.id &&
+													interrupt.status === 'pending',
+											)
+											if (approval?.kind === 'tool-approval') {
+												const { productName, size, color, quantity } =
+													approval.originalArgs
+												return (
+													<div
+														key={i}
+														className="mt-2 rounded-lg border border-amber-200 bg-amber-50 p-3 dark:border-amber-900 dark:bg-amber-950"
+													>
+														<div className="mb-1 text-sm font-medium text-gray-900 dark:text-gray-100">
+															🛒 Add to cart?
+														</div>
+														<div className="mb-3 text-xs text-gray-700 dark:text-gray-300">
+															<div>{productName}</div>
+															<div className="mt-1 opacity-75">
+																size {size} · color {color} · qty {quantity}
+															</div>
+														</div>
+														<div className="flex gap-2">
+															<button
+																type="button"
+																onClick={() => approval.resolveInterrupt(true)}
+																className="rounded bg-emerald-600 px-3 py-1 text-xs font-medium text-white hover:bg-emerald-700"
+															>
+																Yes, add it
+															</button>
+															<button
+																type="button"
+																onClick={() => approval.resolveInterrupt(false)}
+																className="rounded bg-gray-300 px-3 py-1 text-xs font-medium text-gray-800 hover:bg-gray-400 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600"
+															>
+																No, cancel
+															</button>
 														</div>
 													</div>
-													<div className="flex gap-2">
-														<button
-															type="button"
-															onClick={() =>
-																void addToolApprovalResponse({
-																	id: approvalId,
-																	approved: true,
-																})
-															}
-															className="rounded bg-emerald-600 px-3 py-1 text-xs font-medium text-white hover:bg-emerald-700"
-														>
-															Yes, add it
-														</button>
-														<button
-															type="button"
-															onClick={() =>
-																void addToolApprovalResponse({
-																	id: approvalId,
-																	approved: false,
-																})
-															}
-															className="rounded bg-gray-300 px-3 py-1 text-xs font-medium text-gray-800 hover:bg-gray-400 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600"
-														>
-															No, cancel
-														</button>
-													</div>
-												</div>
-											)
-										}
+												)
+											}
 
-										if (
-											part.state === 'approval-responded' &&
-											part.approval?.approved === false
-										) {
-											return (
-												<div
-													key={i}
-													className="mt-1 text-xs italic text-gray-500 dark:text-gray-400"
-												>
-													❌ Cancelled — not added.
-												</div>
-											)
+											if (part.approval?.approved === false) {
+												return (
+													<div
+														key={i}
+														className="mt-1 text-xs italic text-gray-500 dark:text-gray-400"
+													>
+														❌ Cancelled — not added.
+													</div>
+												)
+											}
 										}
 
 										return (

@@ -10,7 +10,7 @@ import { type Route } from './+types/api.chat'
  * Resource route for the product chat backend.
  *
  * 🐨 Build an OpenRouter text adapter by calling
- *    `openRouterText('openai/gpt-oss-120b:free')`. The adapter reads
+ *    `openRouterText('nvidia/nemotron-3-super-120b-a12b:free')`. The adapter reads
  *    `OPENROUTER_API_KEY` from your environment automatically.
  * 🐨 In the action below:
  *    - Call `await chatParamsFromRequest(request)` to parse and validate
