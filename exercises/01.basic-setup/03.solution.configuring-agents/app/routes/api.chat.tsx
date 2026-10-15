@@ -12,7 +12,7 @@ import {
 import { PageForwardedProps } from '#app/schemas/chat.js'
 import { type Route } from './+types/api.chat'
 
-const adapter = openRouterText('openai/gpt-oss-120b:free')
+const adapter = openRouterText('nvidia/nemotron-3-super-120b-a12b:free')
 
 export const action = async ({ request }: Route.ActionArgs) => {
 	const { messages, forwardedProps, threadId } =
@@ -34,9 +34,7 @@ export const action = async ({ request }: Route.ActionArgs) => {
 		systemPrompts,
 		messages,
 		threadId,
-		modelOptions: {
-			reasoning: { effort: 'medium' },
-		},
+		reasoning: 'medium',
 	})
 	return toServerSentEventsResponse(stream)
 }

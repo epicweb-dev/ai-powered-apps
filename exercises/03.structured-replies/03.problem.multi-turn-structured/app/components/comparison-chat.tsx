@@ -109,10 +109,12 @@ export function ComparisonChat({
 
 // ─── Pre-built presentation — you don't write any of this ────────────────────
 
-function getUserText(parts: ReadonlyArray<{ type: string; content?: string }>) {
+function getUserText(
+	parts: ReadonlyArray<{ type: string; content?: unknown }>,
+) {
 	return parts
 		.filter((p) => p.type === 'text')
-		.map((p) => p.content ?? '')
+		.map((p) => (typeof p.content === 'string' ? p.content : ''))
 		.join('')
 }
 

@@ -18,7 +18,7 @@ On the server side, a working chat route only needs a few lines:
 import { chat, chatParamsFromRequest, toServerSentEventsResponse } from '@tanstack/ai'
 import { openRouterText } from '@tanstack/ai-openrouter'
 
-const adapter = openRouterText('openai/gpt-oss-120b:free')
+const adapter = openRouterText('nvidia/nemotron-3-super-120b-a12b:free')
 
 export const action = async ({ request }: Route.ActionArgs) => {
 	const { messages } = await chatParamsFromRequest(request)
@@ -29,7 +29,7 @@ export const action = async ({ request }: Route.ActionArgs) => {
 
 Four things to notice here:
 
-1. **The adapter already knows which model to use.** When you call `openRouterText('openai/gpt-oss-120b:free')` you get back an adapter that is locked to that model. The `chat()` call does not take a separate `model` field.
+1. **The adapter already knows which model to use.** When you call `openRouterText('nvidia/nemotron-3-super-120b-a12b:free')` you get back an adapter that is locked to that model. The `chat()` call does not take a separate `model` field.
 2. **The API key is read from `process.env.OPENROUTER_API_KEY` automatically.** You do not pass it in.
 3. **`chat()` returns a stream of small pieces, not a finished response.**
 4. **`toServerSentEventsResponse(stream)` turns that stream into something the browser can read.** It uses Server-Sent Events (SSE), which is a simple way for the server to push data to the browser over time.
@@ -82,7 +82,7 @@ Three short exercises:
 
 1. **Wire up the chat route** — replace a `501 TODO` placeholder in `app/routes/api.chat.tsx` with a real `chat()` call that checks the input, talks to the model through OpenRouter, and sends a Server-Sent Events (SSE) stream back to the browser.
 2. **Show the messages on the page** — swap the panel's hand-written `fetch` call for `useChat` so the UI shows real chat bubbles, remembers the conversation, and streams answers as they come in.
-3. **Configure the agent** — give the bot a clear role with a global system prompt that refuses off-topic questions, feed it the real product the customer is looking at by fetching it on the server, and turn on the model's reasoning mode through `modelOptions` so it thinks before it answers.
+3. **Configure the agent** — give the bot a clear role with a global system prompt that refuses off-topic questions, feed it the real product the customer is looking at by fetching it on the server, and turn on the model's reasoning mode with the `reasoning` option so it thinks before it answers.
 
 By the end of this section, the floating panel on every product page will be a focused EpicStore shopping assistant that knows which product the customer is viewing and shows its reasoning above each answer. The next section adds tools so the bot can also look up other products from the catalog.
 

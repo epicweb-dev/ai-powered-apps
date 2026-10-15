@@ -18,17 +18,21 @@ import {
 } from '#app/tools/products.ts'
 import { type Route } from './+types/api.chat'
 
-const adapter = openRouterText('openai/gpt-oss-120b:free')
+const adapter = openRouterText('nvidia/nemotron-3-super-120b-a12b:free')
 
 // 🐨 The new client tool's *definition* is imported above. The server doesn't
 //    run `navigateTo` itself — it just needs to tell the model the tool
 //    exists. Add `navigateToDef` to the `tools: [...]` array on `chat({...})`
 //    below. (Note: it's a definition, not a `.server(...)` tool — that's the
 //    whole point of client tools. The model sees it the same way either way.)
+//
+// 🦉 A client tool pauses the run. The browser runs the tool, then sends a
+//    second request with the result. `runId`, `parentRunId`, and `resume`
+//    are already forwarded below, so `chat()` knows which run to continue.
 void navigateToDef
 
 export const action = async ({ request }: Route.ActionArgs) => {
-	const { messages, forwardedProps, threadId } =
+	const { messages, forwardedProps, threadId, runId, parentRunId, resume } =
 		await chatParamsFromRequest(request)
 	const props = PageForwardedProps.safeParse(forwardedProps)
 	if (!props.success) {
@@ -47,10 +51,11 @@ export const action = async ({ request }: Route.ActionArgs) => {
 		systemPrompts,
 		messages,
 		threadId,
+		runId,
+		parentRunId,
+		resume,
 		tools: [searchProducts, findSimilarProducts, recommendProducts],
-		modelOptions: {
-			reasoning: { effort: 'medium' },
-		},
+		reasoning: 'medium',
 	})
 	return toServerSentEventsResponse(stream)
 }

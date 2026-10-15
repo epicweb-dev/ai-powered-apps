@@ -1,7 +1,7 @@
 import { useChat, fetchServerSentEvents } from '@tanstack/ai-react'
+import { TextPart } from '@tanstack/ai-react/ui'
 import { MessageCircle, Send, X } from 'lucide-react'
 import { useState } from 'react'
-import ReactMarkdown from 'react-markdown'
 import { useRouteLoaderData } from 'react-router'
 
 export type ProductChatContext = {
@@ -87,7 +87,7 @@ export function ProductChat() {
 							>
 								{m.parts.map((part, i) =>
 									part.type === 'text' ? (
-										<ReactMarkdown key={i}>{part.content}</ReactMarkdown>
+										<TextPart key={i} content={part.content} />
 									) : null,
 								)}
 							</div>

@@ -1,7 +1,7 @@
 import { useChat, fetchServerSentEvents } from '@tanstack/ai-react'
+import { TextPart } from '@tanstack/ai-react/ui'
 import { MessageCircle, Send, X } from 'lucide-react'
 import { useState } from 'react'
-import ReactMarkdown from 'react-markdown'
 import { useNavigate, useRouteLoaderData } from 'react-router'
 import { ProductCard } from '#app/components/product-card'
 import { navigateToDef } from '#app/tools/navigation.ts'
@@ -120,7 +120,7 @@ export function ProductChat() {
 							>
 								{m.parts.map((part, i) => {
 									if (part.type === 'text') {
-										return <ReactMarkdown key={i}>{part.content}</ReactMarkdown>
+										return <TextPart key={i} content={part.content} />
 									}
 									if (part.type === 'thinking') {
 										return (

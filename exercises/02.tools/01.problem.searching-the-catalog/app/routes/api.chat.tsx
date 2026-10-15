@@ -17,7 +17,7 @@ import {
 } from '#app/tools/products.ts'
 import { type Route } from './+types/api.chat'
 
-const adapter = openRouterText('openai/gpt-oss-120b:free')
+const adapter = openRouterText('nvidia/nemotron-3-super-120b-a12b:free')
 
 /**
  * 🐨 The three product tools above are now imported for you. Hand them to
@@ -51,9 +51,7 @@ export const action = async ({ request }: Route.ActionArgs) => {
 		systemPrompts,
 		messages,
 		threadId,
-		modelOptions: {
-			reasoning: { effort: 'medium' },
-		},
+		reasoning: 'medium',
 	})
 	return toServerSentEventsResponse(stream)
 }
