@@ -14,7 +14,7 @@ import {
 	findSimilarProducts,
 	recommendProducts,
 	searchProducts,
-} from '#app/tools/products.ts'
+} from '#app/tools/products.server.ts'
 import { type Route } from './+types/api.chat'
 
 const adapter = openRouterText('nvidia/nemotron-3-super-120b-a12b:free')

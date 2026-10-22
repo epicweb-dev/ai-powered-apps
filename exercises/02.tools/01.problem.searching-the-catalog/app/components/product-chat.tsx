@@ -3,7 +3,14 @@ import { TextPart } from '@tanstack/ai-react/ui'
 import { MessageCircle, Send, X } from 'lucide-react'
 import { useState } from 'react'
 import { useRouteLoaderData } from 'react-router'
-import { ProductCard } from '#app/components/product-card'
+import {
+	ProductResults,
+	ToolCallPending,
+} from '#app/components/tool-parts'
+import {
+	findSimilarProductsDef,
+	recommendProductsDef,
+} from '#app/tools/products.ts'
 
 export type ProductChatContext = {
 	productId: string
@@ -45,9 +52,37 @@ export function ProductChat() {
 	const product = useCurrentProduct()
 	const [isOpen, setIsOpen] = useState(false)
 	const [draft, setDraft] = useState('')
+	const [threadId] = useState(() => crypto.randomUUID())
+
+	/**
+	 * 🦉 Why hand *server* tools to `useChat`?
+	 *
+	 *    The browser never runs these tools — the server does. But `useChat`
+	 *    types every message part from the tools you give it. Pass it the
+	 *    three product definitions and each `tool-call` part becomes a union
+	 *    you can `switch` on: inside `case 'searchProducts'`, TypeScript knows
+	 *    `part.output` is `{ products }`. No casts, no guessing at the shape.
+	 *
+	 *    Definitions are safe to import here because `products.ts` has no
+	 *    server code in it. The `.server(...)` halves live in
+	 *    `products.server.ts`, which never reaches the browser.
+	 *
+	 * 🐨 Once `searchProductsDef` exists, add it to the `products.ts` import
+	 *    at the top of this file. (Not before — importing a name the file
+	 *    doesn't export yet breaks every page of the store.)
+	 *
+	 * 🐨 Then add `tools: [searchProductsDef, findSimilarProductsDef,
+	 *    recommendProductsDef]` to the `useChat({...})` call below.
+	 *
+	 * 💣 Delete the `void` lines once the `tools` array uses them.
+	 */
+	void findSimilarProductsDef
+	void recommendProductsDef
+	void ProductResults
 
 	const { messages, sendMessage, isLoading } = useChat({
 		connection: fetchServerSentEvents('/api/chat'),
+		threadId,
 		forwardedProps: product ? { productId: product.productId } : {},
 	})
 
@@ -107,33 +142,29 @@ export function ProductChat() {
 										)
 									}
 									if (part.type === 'tool-call') {
-										// Server tools that return `{ products }` (searchProducts,
-										// findSimilarProducts, recommendProducts) show their result
-										// as a stack of ProductCards once execution finishes.
-										const output = (part as { output?: unknown }).output as
-											| { products?: Array<{ id: string }> }
-											| undefined
-										const products = output?.products
-										if (Array.isArray(products) && products.length > 0) {
-											return (
-												<div key={i} className="mt-2 flex flex-col gap-3">
-													{products.map((p) => (
-														<ProductCard
-															key={p.id}
-															product={p as Parameters<typeof ProductCard>[0]['product']}
-														/>
-													))}
-												</div>
-											)
-										}
-										return (
-											<div
-												key={i}
-												className="mt-1 text-xs italic text-gray-500 dark:text-gray-400"
-											>
-												🔧 Calling {(part as { name?: string }).name ?? 'tool'}…
-											</div>
-										)
+										// 🐨 Render each tool call by its name: `switch (part.name) { ... }`.
+										//    All three product tools return `{ products }`, so they share one case:
+										//
+										//      switch (part.name) {
+										//        case 'searchProducts':
+										//        case 'findSimilarProducts':
+										//        case 'recommendProducts': {
+										//          // 🐨 nothing to show until the tool has finished with results
+										//          //    💰 if (!part.output?.products.length) break
+										//          // 🐨 then render the cards — the component is ready (imported above):
+										//          //    return <ProductResults key={i} products={part.output.products} />
+										//        }
+										//      }
+										//
+										//    Anything that `break`s out (or a tool with no case) falls through to the
+										//    "Calling…" line below.
+										//
+										// 🦺 Until the definitions are in `useChat({ tools })`, `part.name` is just a
+										//    `string` and `part.output` is untyped. Add them and hover `part.output`
+										//    inside the case — it's `{ products: ... }`.
+
+										// Still running, or a result with nothing to show.
+										return <ToolCallPending key={i} name={part.name} />
 									}
 									return null
 								})}

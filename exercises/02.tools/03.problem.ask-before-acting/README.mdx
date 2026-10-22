@@ -16,16 +16,16 @@ This new file already has the two schemas built for you (`AddToCartInput` and `A
 
 ### 2. `app/routes/api.chat.tsx` — tell the model the tool exists
 
-2. 🐨 Add `addToCartDef` to the `tools: [...]` array on the `chat({...})` call. Same as last time — even though the tool runs in the browser, the server has to advertise it so the model knows it exists.
+2. 🐨 Add `addToCartDef` to the array inside `mergeAgentTools([...], clientTools)` on the `chat({...})` call. Same as last time — even though the tool runs in the browser, the server has to advertise it so the model knows it exists. It matters even more here: the browser's copy of the tool doesn't carry `needsApproval: true`, so only the server's copy makes the run stop for approval.
 3. 💣 Delete the `void addToCartDef` line above the action.
 
 ### 3. `app/components/product-chat.tsx` — provide the implementation *and* the approval UI
 
 This is where the new concept lives. You'll do three things here.
 
-4. 🐨 Build the `addToCart` client tool with `addToCartDef.client(execute)`. The 🐨 block above the `useChat({...})` call walks you through it — same shape as the `navigateTo` tool just above, but the callback closes over `cart` (from `useCart()`) and calls the pre-built `addProductToCart(...)` helper to do the real work.
+4. 🐨 Import `addToCartDef` from `#app/tools/cart.ts` once it exists (importing it before you've exported it breaks every page of the store). Then build the `addToCart` client tool with `addToCartDef.client(execute)`. The 🐨 block above the `useChat({...})` call walks you through it — same shape as the `navigateTo` tool just above, but the callback closes over `cart` (from `useCart()`) and calls the pre-built `addProductToCart(...)` helper to do the real work.
 5. 🐨 Add `addToCart` to the `tools: [...]` array on `useChat({...})`.
-6. 🐨 Find the **approval prompt UI** further down in the `messages.map(...)` block (look for the `🛒 Add to cart?` card). The card is already built, and it already finds its `approval` in `interrupts`. You only wire the **Yes** and **No** buttons: call `approval.resolveInterrupt(true)` for Yes and `approval.resolveInterrupt(false)` for No.
+6. 🐨 In the `switch (part.name)` further down, add `case 'addToCart'`. The 🐨 comment there lays out its three outcomes (added, waiting for approval, declined) and has the ready-made components for each: `<AddedToCartNotice />`, the `🛒 Add to cart?` card `<AddToCartApproval />`, and `<CancelledNotice />`. For the card, find this tool call's `approval` in `interrupts`, then wire **Yes** and **No** through its `onApprove` / `onDeny` props: call `approval.resolveInterrupt(true)` for Yes and `approval.resolveInterrupt(false)` for No.
 
 ## 🦉 How approvals work in TanStack AI
 
@@ -65,9 +65,13 @@ Open the chat panel and try these:
 
 ## 🚨 If you get stuck
 
-- **TypeScript complains that `addToCartDef` is not exported** → you haven't built it yet in `app/tools/cart.ts`. The 🐨 block there is the spec.
-- **The bot adds things to the cart with no prompt** → you forgot `needsApproval: true` on the tool definition. Without that field, the tool runs the moment the model picks it.
-- **The Yes/No buttons render but clicking does nothing** → the `onClick` handlers in the approval card still have the `// 🐨` placeholders. Replace them with `approval.resolveInterrupt(true)` and `approval.resolveInterrupt(false)`.
-- **TypeScript says `'addToCart'` has no overlap with `'navigateTo'`** → `addToCart` is not in the `useChat({ tools: [...] })` array yet. The message parts are typed from that array.
-- **The bot says it added something but the cart is empty** → either `addToCart` isn't in the `useChat({ tools: [...] })` array, or the `.client(...)` callback didn't actually call `addProductToCart(...)`. Both are needed.
+- **TypeScript complains that `addToCartDef` is not exported** → you haven't built it yet in `app/tools/cart.ts`. The 🐨 block there is the spec. Until it exists you'll also see the error in `tool-parts.tsx` and `api.chat.tsx`, which import it.
+- **Every page of the store shows an error** → `product-chat.tsx` imports `addToCartDef` before `cart.ts` exports it. Build the definition first, then add the import.
+- **The bot adds things to the cart with no prompt** → one of two things:
+  - You forgot `needsApproval: true` on the tool definition. Without that field, the tool runs the moment the model picks it.
+  - `addToCartDef` is missing from the server's `mergeAgentTools([...])` array. The server then only has the browser's copy, which doesn't carry `needsApproval`, so it never asks for approval and the browser runs the tool straight away. The console warns that the server and client tool schemas differ. This is why approval has to live in the server's copy of the tool.
+- **The chat sits on `🔧 Calling addToCart…` and no card ever shows** → `addToCart` isn't in the `useChat({ tools: [...] })` array, so the browser has no tool to bind the approval to.
+- **The Yes/No buttons render but clicking does nothing** → the `onApprove` / `onDeny` props on `<AddToCartApproval />` still have the `// 🐨` placeholders. Replace them with `approval.resolveInterrupt(true)` and `approval.resolveInterrupt(false)`.
+- **TypeScript says `'addToCart'` is not comparable in the `switch`** → `addToCart` is not in the `useChat({ tools: [...] })` array yet. The message parts are typed from that array.
+- **You see `✅ Added to your cart` but the cart is empty** → the `.client(...)` callback returned `{ added: true }` without actually calling `addProductToCart(...)`.
 - **The model picks weird sizes/colors** → that's actually fine for this exercise — the approval prompt is the safety net. The customer rejects, and the model tries again. If you want better defaults, you could extend the system prompt to nudge the model toward common sizes.

@@ -3,11 +3,24 @@ import { TextPart } from '@tanstack/ai-react/ui'
 import { MessageCircle, Send, X } from 'lucide-react'
 import { useState } from 'react'
 import { useNavigate, useRouteLoaderData } from 'react-router'
-import { ProductCard } from '#app/components/product-card'
+import {
+	AddToCartApproval,
+	AddedToCartNotice,
+	CancelledNotice,
+	NavigatedNotice,
+	ProductResults,
+	ToolCallPending,
+	VariationsTable,
+} from '#app/components/tool-parts'
 import { useCart } from '#app/contexts/cart.js'
 import { addProductToCart } from '#app/lib/cart-actions.ts'
-import { addToCartDef } from '#app/tools/cart.ts'
 import { navigateToDef } from '#app/tools/navigation.ts'
+import {
+	findSimilarProductsDef,
+	recommendProductsDef,
+	searchProductsDef,
+} from '#app/tools/products.ts'
+import { showVariationsDef } from '#app/tools/variations.ts'
 
 export type ProductChatContext = {
 	productId: string
@@ -51,6 +64,7 @@ export function ProductChat() {
 	const cart = useCart()
 	const [isOpen, setIsOpen] = useState(false)
 	const [draft, setDraft] = useState('')
+	const [threadId] = useState(() => crypto.randomUUID())
 
 	const navigateTo = navigateToDef.client(({ destination }) => {
 		navigate(destination)
@@ -58,6 +72,11 @@ export function ProductChat() {
 	})
 
 	/**
+	 * 🐨 Once `addToCartDef` exists in `cart.ts`, import it at the top of
+	 *    this file: `import { addToCartDef } from '#app/tools/cart.ts'`.
+	 *    (Not before — importing a name the file doesn't export yet breaks
+	 *    every page of the store.)
+	 *
 	 * 🐨 Build the second client tool below. Same pattern as `navigateTo`
 	 *    above — but this one closes over `cart` (from `useCart()`) instead
 	 *    of `navigate`.
@@ -74,23 +93,39 @@ export function ProductChat() {
 	 * 🦉 Notice this tool's definition has `needsApproval: true` (you set
 	 *    that in `cart.ts`). That means TanStack AI will *not* call your
 	 *    `.client(...)` callback until the customer approves. The approval
-	 *    UI is rendered further down in `messages.map(...)` — the click
-	 *    handlers there are also yours to wire up.
+	 *    card is rendered further down in the `switch (part.name)` — the
+	 *    `addToCart` case is yours to write.
 	 *
-	 * 🦺 Down there, `part.name === 'addToCart'` is a type error until you
-	 *    add `addToCart` to `tools` below. The message parts are typed from
-	 *    the tools you pass to `useChat`.
+	 * 🦺 Down there, `case 'addToCart'` is a type error until you add
+	 *    `addToCart` to `tools` below. The message parts are typed from the
+	 *    tools you pass to `useChat`.
+	 *
+	 * 💣 Delete the `void` lines once you're using these for real.
 	 */
-	void addToCartDef
 	void addProductToCart
 	void cart
+	void AddToCartApproval
+	void AddedToCartNotice
+	void CancelledNotice
 
 	const { messages, sendMessage, isLoading, interrupts } = useChat({
 		connection: fetchServerSentEvents('/api/chat'),
+		threadId,
 		forwardedProps: product ? { productId: product.productId } : {},
-		// 🐨 Add `addToCart` to this list once you've built it above.
-		tools: [navigateTo],
+		tools: [
+			// Server tools: the server runs these. The browser only needs their
+			// definitions so every tool-call part below is typed.
+			searchProductsDef,
+			findSimilarProductsDef,
+			recommendProductsDef,
+			showVariationsDef,
+			// Client tools: the browser runs these.
+			navigateTo,
+			// 🐨 Add `addToCart` here once you've built it above.
+		],
 	})
+	// 💣 Delete once your `addToCart` case reads `interrupts`.
+	void interrupts
 
 	return (
 		<div className="fixed right-6 bottom-6 z-50">
@@ -148,218 +183,70 @@ export function ProductChat() {
 										)
 									}
 									if (part.type === 'tool-call') {
-										const output = part.output as
-											| {
-													products?: Array<{ id: string }>
-													destination?: string
-													added?: boolean
-													productName?: string
-													variations?: Array<{
-														size: string
-														color: string
-														quantity: number
-													}>
-											  }
-											| undefined
-
-										const products = output?.products
-										if (Array.isArray(products) && products.length > 0) {
-											return (
-												<div key={i} className="mt-2 flex flex-col gap-3">
-													{products.map((p) => (
-														<ProductCard
-															key={p.id}
-															product={p as Parameters<typeof ProductCard>[0]['product']}
-														/>
-													))}
-												</div>
-											)
-										}
-
-										if (Array.isArray(output?.variations)) {
-											const variations = output.variations
-											const sizes = Array.from(
-												new Set(variations.map((v) => v.size)),
-											)
-											const colors = Array.from(
-												new Set(variations.map((v) => v.color)),
-											)
-											const find = (size: string, color: string) =>
-												variations.find(
-													(v) => v.size === size && v.color === color,
-												)?.quantity
-											return (
-												<div key={i} className="mt-2">
-													<div className="mb-1 text-xs font-medium text-gray-800 dark:text-gray-100">
-														{output.productName
-															? `Variations for ${output.productName}`
-															: 'Available variations'}
-													</div>
-													<div className="overflow-x-auto">
-														<table className="w-full border-collapse text-xs">
-															<thead>
-																<tr className="border-b border-stone-200 dark:border-gray-700">
-																	<th className="px-2 py-1 text-left font-medium text-gray-600 dark:text-gray-400">
-																		Size
-																	</th>
-																	{colors.map((c) => (
-																		<th
-																			key={c}
-																			className="px-2 py-1 text-left font-medium text-gray-600 dark:text-gray-400"
-																		>
-																			{c}
-																		</th>
-																	))}
-																</tr>
-															</thead>
-															<tbody>
-																{sizes.map((s) => (
-																	<tr
-																		key={s}
-																		className="border-b border-stone-100 dark:border-gray-800"
-																	>
-																		<td className="px-2 py-1 font-medium text-gray-800 dark:text-gray-100">
-																			{s}
-																		</td>
-																		{colors.map((c) => {
-																			const qty = find(s, c)
-																			if (qty === undefined) {
-																				return (
-																					<td
-																						key={c}
-																						className="px-2 py-1 text-gray-400"
-																					>
-																						—
-																					</td>
-																				)
-																			}
-																			if (qty === 0) {
-																				return (
-																					<td
-																						key={c}
-																						className="px-2 py-1 text-gray-400 line-through"
-																					>
-																						0
-																					</td>
-																				)
-																			}
-																			return (
-																				<td
-																					key={c}
-																					className="px-2 py-1 text-emerald-700 dark:text-emerald-400"
-																				>
-																					{qty}
-																				</td>
-																			)
-																		})}
-																	</tr>
-																))}
-															</tbody>
-														</table>
-													</div>
-												</div>
-											)
-										}
-
-										if (output?.destination) {
-											return (
-												<div
-													key={i}
-													className="mt-1 text-xs italic text-gray-500 dark:text-gray-400"
-												>
-													📍 Took you to the {output.destination} page.
-												</div>
-											)
-										}
-
-										if (output?.added) {
-											return (
-												<div
-													key={i}
-													className="mt-1 rounded bg-emerald-100 px-2 py-1 text-xs text-emerald-900 dark:bg-emerald-950 dark:text-emerald-100"
-												>
-													✅ Added to your cart.
-												</div>
-											)
-										}
-
-										if (part.name === 'addToCart') {
-											// 🦉 When the model calls a `needsApproval` tool, the run
-											//    stops and `useChat` puts a pending decision in
-											//    `interrupts`. Each one is bound to its tool call by
-											//    `toolCallId`, so this finds the card's approval.
-											const approval = interrupts.find(
-												(interrupt) =>
-													interrupt.kind === 'tool-approval' &&
-													interrupt.toolCallId === part.id &&
-													interrupt.status === 'pending',
-											)
-											if (approval?.kind === 'tool-approval') {
-												const { productName, size, color, quantity } =
-													approval.originalArgs
+										switch (part.name) {
+											case 'searchProducts':
+											case 'findSimilarProducts':
+											case 'recommendProducts': {
+												if (!part.output?.products.length) break
 												return (
-													<div
+													<ProductResults
 														key={i}
-														className="mt-2 rounded-lg border border-amber-200 bg-amber-50 p-3 dark:border-amber-900 dark:bg-amber-950"
-													>
-														<div className="mb-1 text-sm font-medium text-gray-900 dark:text-gray-100">
-															🛒 Add to cart?
-														</div>
-														<div className="mb-3 text-xs text-gray-700 dark:text-gray-300">
-															<div>{productName}</div>
-															<div className="mt-1 opacity-75">
-																size {size} · color {color} · qty {quantity}
-															</div>
-														</div>
-														<div className="flex gap-2">
-															{/*
-															  🐨 Wire these buttons up. Resolve the interrupt with
-															      `true` for "Yes" and `false` for "No".
-															  💰 approval.resolveInterrupt(true)
-															*/}
-															<button
-																type="button"
-																onClick={() => {
-																	// 🐨 approve
-																}}
-																className="rounded bg-emerald-600 px-3 py-1 text-xs font-medium text-white hover:bg-emerald-700"
-															>
-																Yes, add it
-															</button>
-															<button
-																type="button"
-																onClick={() => {
-																	// 🐨 deny
-																}}
-																className="rounded bg-gray-300 px-3 py-1 text-xs font-medium text-gray-800 hover:bg-gray-400 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600"
-															>
-																No, cancel
-															</button>
-														</div>
-													</div>
+														products={part.output.products}
+													/>
 												)
 											}
-
-											if (part.approval?.approved === false) {
+											case 'showVariations': {
+												if (!part.output) break
+												return <VariationsTable key={i} {...part.output} />
+											}
+											case 'navigateTo': {
+												if (!part.output) break
 												return (
-													<div
+													<NavigatedNotice
 														key={i}
-														className="mt-1 text-xs italic text-gray-500 dark:text-gray-400"
-													>
-														❌ Cancelled — not added.
-													</div>
+														destination={part.output.destination}
+													/>
 												)
 											}
+											// 🐨 Add `case 'addToCart':` here. It ends in one of three states. The
+											//    components for each are ready (imported above) — uncomment the one
+											//    each branch needs.
+											//
+											//    1. The customer approved and the tool ran: `part.output?.added` is true.
+											//       return <AddedToCartNotice key={i} />
+											//
+											//    2. The customer still has to decide. When the model calls a
+											//       `needsApproval` tool, the run stops and `useChat` puts a pending
+											//       decision in `interrupts`, bound to the tool call by `toolCallId`:
+											//       const approval = interrupts.find(
+											//         (interrupt) =>
+											//           interrupt.kind === 'tool-approval' &&
+											//           interrupt.toolCallId === part.id &&
+											//           interrupt.status === 'pending',
+											//       )
+											//       If `approval?.kind === 'tool-approval'`, render the card:
+											//       return (
+											//         <AddToCartApproval
+											//           key={i}
+											//           args={approval.originalArgs}
+											//           onApprove={() => {
+											//             // 🐨 approve
+											//           }}
+											//           onDeny={() => {
+											//             // 🐨 deny
+											//           }}
+											//         />
+											//       )
+											//       💰 Resolve the interrupt with `true` for Yes and `false` for No:
+											//          approval.resolveInterrupt(true)
+											//
+											//    3. The customer said No: `part.approval?.approved === false`.
+											//       return <CancelledNotice key={i} />
+											//
+											//    Otherwise `break` — the "Calling…" line below covers it.
 										}
-
-										return (
-											<div
-												key={i}
-												className="mt-1 text-xs italic text-gray-500 dark:text-gray-400"
-											>
-												🔧 Calling {(part as { name?: string }).name ?? 'tool'}…
-											</div>
-										)
+										// Still running, or a result with nothing to show.
+										return <ToolCallPending key={i} name={part.name} />
 									}
 									return null
 								})}

@@ -8,38 +8,54 @@ By the end the bot can search the catalog, find similar products, and recommend 
 
 ## 🐨 What you will do
 
-You'll touch two files. Both have all the imports you need already.
+You'll touch four files. Most of the imports you need are already there.
 
-### 1. `app/tools/products.ts`
+### 1. `app/tools/products.ts`: the definition
 
-The scaffold already has two working server tools — `findSimilarProducts` and `recommendProducts`. Read through them first. They follow this pattern:
+A tool has two halves. The **definition** (name, description, input and output schemas) is plain data that both the server and the browser import. The **server code** (`.server(...)`) needs the database, so it lives in its own `products.server.ts` file that never reaches the browser.
+
+The scaffold already has two working definitions, `findSimilarProductsDef` and `recommendProductsDef`. Read through them first. They follow this pattern:
 
 ```ts
-const myToolDef = toolDefinition({
+export const myToolDef = toolDefinition({
   name: '...',
   description: '...',
   inputSchema: z.object({ ... }),
   outputSchema: ProductList,
 })
+```
 
+This workshop isn't about Zod, so both schemas are already written for you near the top of the file: `SearchProductsInput` (what the model sends in) and `ProductList` (what your tool returns). You just plug them in.
+
+1. 🐨 At the bottom of the file, the 🐨 block tells you what `searchProductsDef` should contain: name, description, and which schemas to plug in. Build it using the two definitions above as templates, and export it.
+
+### 2. `app/tools/products.server.ts`: the server code
+
+The two pre-built tools attach their server code here:
+
+```ts
 export const myTool = myToolDef.server(async (args) => {
   // call a database helper and return the result
 })
 ```
 
-You'll build the third tool, `searchProducts`, in the same file.
+2. 🐨 Following the 🐨 block at the bottom of the file, attach a `.server(...)` callback to `searchProductsDef` that maps the args to `getProducts({ ... })`. Export it as `searchProducts` (the chat route already imports it under that name).
 
-This workshop isn't about Zod, so both schemas are already written for you near the top of the file: `SearchProductsInput` (what the model sends in) and `ProductList` (what your tool returns). You just plug them in.
-
-1. 🐨 At the bottom of the file, the 🐨 block tells you what `searchProductsDef` should contain — name, description, which schemas to plug in, and how the `.server(...)` callback should map the args to `getProducts({ ... })`. Write the tool using the two tools above as templates for the *shape*.
-2. 🐨 Export the result as `searchProducts` (the chat route already imports it under that name).
-
-### 2. `app/routes/api.chat.tsx`
+### 3. `app/routes/api.chat.tsx`: register the tools
 
 The three tools are already imported at the top of the file. They just need to be registered with the chat call.
 
-4. 🐨 Add `tools: [searchProducts, findSimilarProducts, recommendProducts]` to the `chat({ ... })` call. Once the array is there, the model can decide on its own when to call any of the three tools.
-5. 💣 Delete the `void` lines above the action.
+3. 🐨 Add `tools: [searchProducts, findSimilarProducts, recommendProducts]` to the `chat({ ... })` call. Once the array is there, the model can decide on its own when to call any of the three tools.
+4. 💣 Delete the `void` lines above the action.
+
+### 4. `app/components/product-chat.tsx`: typed tool parts
+
+The chat panel has to draw each tool result. Instead of guessing at the shape of `part.output`, you'll let TypeScript tell you what it is.
+
+5. 🐨 Import `searchProductsDef` next to the two definitions that are already imported from `#app/tools/products.ts`. Do this only after it exists: importing a name the file doesn't export yet breaks every page of the store.
+6. 🐨 Add `tools: [searchProductsDef, findSimilarProductsDef, recommendProductsDef]` to the `useChat({ ... })` call.
+7. 🐨 Find the `tool-call` branch in `messages.map(...)`. Write a `switch (part.name)` with one shared case for the three product tools. The `<ProductResults />` component is ready in `app/components/tool-parts.tsx`; the 🐨 comment has the exact line to uncomment.
+8. 💣 Delete the `void` lines above `useChat`.
 
 ## 🦉 How tools work in TanStack AI
 
@@ -49,7 +65,11 @@ When you pass tools to `chat()`, TanStack AI tells the model what tools are avai
 2. Streams the result back into the conversation as a new message **part** (`type: 'tool-call'` with an `output` field).
 3. Feeds the result back to the model so it can keep talking.
 
-The chat panel's renderer already knows how to handle `tool-call` parts — it looks at the `output` field, and if it has a `products` array, it draws each one as a real `<ProductCard />`. You do not need to touch the rendering for this exercise.
+## 🦉 Why the browser gets the server tools' definitions
+
+The browser never runs `searchProducts`; the server does. But `useChat` types every message part from the tools you pass it. Give it the three definitions, and each `tool-call` part becomes a union keyed on `part.name`. Inside `case 'searchProducts'`, TypeScript knows `part.output` is `{ products }`, so you can hand it straight to `<ProductResults />` with no casts.
+
+That's also why the definition and the server code live in separate files. `products.ts` is safe to import in the browser because it has no database code. `products.server.ts` does, and the `.server.ts` name keeps it out of the browser bundle.
 
 Marty 💰 hands you the canonical `description` string in the file. Read the 🦉 note right above the 🐨 block for *why* that description is structured the way it is — it's the prompt the model reads when deciding whether to call your tool, so it has to be specific about *when* this tool is the right choice.
 
@@ -71,7 +91,9 @@ In the chat thread, while a tool is running, you should see a small italic line 
 
 ## 🚨 If you get stuck
 
-- **TypeScript complains that `searchProducts` is not exported from `#app/tools/products.ts`** → you haven't built it yet. The chat route imports it, so the import fails until you create and `export const searchProducts = ...` in the tools file.
-- **The tool runs but no cards appear** → make sure the `.server(...)` callback returns `{ products }` (an object with a `products` array), not just an array.
+- **TypeScript complains that `searchProductsDef` or `searchProducts` is not exported** → you haven't built it yet. `searchProductsDef` goes in `products.ts`, `searchProducts` in `products.server.ts`. Until both exist you'll also see errors in files you don't touch (`tool-parts.tsx`, `api.chat.tsx`) because they import them.
+- **Every page of the store shows an error after you edit `product-chat.tsx`** → you imported `searchProductsDef` before exporting it from `products.ts`. Build the definition first.
+- **The tool runs but no cards appear** → make sure the `.server(...)` callback returns `{ products }` (an object with a `products` array), not just an array. Also check that your `case` returns `<ProductResults />` and isn't left commented out.
+- **`part.output` is `any` inside your case** → the definitions are not in the `useChat({ tools: [...] })` array yet. The parts are typed from that array.
 - **A `400` shows up in the chat** → the input schema does not match what the model sent. Double-check the field names and that optional fields are marked `.optional()`.
 - **TypeScript complains about `void searchProducts`** → you removed the `void` lines from `api.chat.tsx` but did not actually add `tools: [...]` to the `chat()` call. Either add it, or keep the `void` for a moment.

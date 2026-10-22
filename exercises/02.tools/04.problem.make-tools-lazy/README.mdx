@@ -18,7 +18,7 @@ The schemas (`ShippingEstimateInput`, `ShippingEstimateOutput`) and the `estimat
 
 The four other lazy tools (return policy, size guide, care instructions, restock) are already built — read through them in the `app/tools/` folder if you want to see what a "this is the entire tool" file looks like. They are imported for you at the top of the chat route.
 
-2. 🐨 Add the five lazy tools (`getReturnPolicy`, `getSizeGuide`, `getCareInstructions`, `subscribeToRestock`, `getShippingEstimate`) to the `tools: [...]` array on the `chat({...})` call. The order does not matter — eager and lazy tools sit in the same array. The `lazy: true` flag on each definition is what splits them apart at runtime.
+2. 🐨 Add the five lazy tools (`getReturnPolicy`, `getSizeGuide`, `getCareInstructions`, `subscribeToRestock`, `getShippingEstimate`) to the array inside `mergeAgentTools([...], clientTools)` on the `chat({...})` call. The order does not matter — eager and lazy tools sit in the same array. The `lazy: true` flag on each definition is what splits them apart at runtime.
 3. 💣 Delete the five `void` lines above the action once the array has them.
 
 ## 🦉 What happens behind the scenes
@@ -42,6 +42,10 @@ Lazy is for **niche** tools — things the customer brings up rarely, where the 
 - **Lazy** (described on demand): `getReturnPolicy`, `getCareInstructions`, `getShippingEstimate` — the customer brings these up occasionally.
 
 If you find yourself adding a 10th, 15th, 20th tool and the model is getting distracted, lazy is the answer. If the tool is core to every conversation, eager is fine.
+
+## 🦉 Why the lazy tools aren't in `useChat`
+
+The chat panel passes the definitions of the tools it renders to `useChat({ tools })` so their parts are typed. The lazy tools have no custom UI — their parts fall through to the `🔧 Calling …` line — so the browser doesn't need their definitions. That's also why each lazy tool is a single file with its `.server(...)` code inside: a tool only needs a separate, browser-safe definition file when the browser imports it.
 
 ## 📜 Docs
 

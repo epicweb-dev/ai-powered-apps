@@ -10,13 +10,14 @@ import { ComparisonSchema } from '#app/schemas/comparison.ts'
 import {
 	findSimilarProducts,
 	searchProducts,
-} from '#app/tools/products.ts'
+} from '#app/tools/products.server.ts'
 import { type Route } from './+types/api.compare'
 
 const adapter = openRouterText('nvidia/nemotron-3-super-120b-a12b:free')
 
 export const action = async ({ request }: Route.ActionArgs) => {
-	const { messages, forwardedProps } = await chatParamsFromRequest(request)
+	const { messages, forwardedProps, threadId } =
+		await chatParamsFromRequest(request)
 	const props = CompareForwardedProps.safeParse(forwardedProps)
 	if (!props.success) {
 		return new Response(props.error.message, { status: 400 })
@@ -39,6 +40,7 @@ export const action = async ({ request }: Route.ActionArgs) => {
 		adapter,
 		systemPrompts,
 		messages,
+		threadId,
 		tools: [searchProducts, findSimilarProducts],
 		outputSchema: ComparisonSchema,
 		stream: true,

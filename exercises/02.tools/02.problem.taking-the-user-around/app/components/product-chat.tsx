@@ -3,8 +3,16 @@ import { TextPart } from '@tanstack/ai-react/ui'
 import { MessageCircle, Send, X } from 'lucide-react'
 import { useState } from 'react'
 import { useNavigate, useRouteLoaderData } from 'react-router'
-import { ProductCard } from '#app/components/product-card'
-import { navigateToDef } from '#app/tools/navigation.ts'
+import {
+	NavigatedNotice,
+	ProductResults,
+	ToolCallPending,
+} from '#app/components/tool-parts'
+import {
+	findSimilarProductsDef,
+	recommendProductsDef,
+	searchProductsDef,
+} from '#app/tools/products.ts'
 
 export type ProductChatContext = {
 	productId: string
@@ -47,6 +55,7 @@ export function ProductChat() {
 	const navigate = useNavigate()
 	const [isOpen, setIsOpen] = useState(false)
 	const [draft, setDraft] = useState('')
+	const [threadId] = useState(() => crypto.randomUUID())
 
 	/**
 	 * 🦉 Why we build the client tool *here* (inside the component)
@@ -58,28 +67,43 @@ export function ProductChat() {
 	 *    "I'm a plain function" world of tools with the "I'm a React hook"
 	 *    world of routing.
 	 *
+	 * 🐨 Once `navigateToDef` exists in `navigation.ts`, import it at the top
+	 *    of this file: `import { navigateToDef } from '#app/tools/navigation.ts'`.
+	 *    (Not before — importing a name the file doesn't export yet breaks
+	 *    every page of the store.)
+	 *
 	 * 🐨 Build the client tool below as `const navigateTo`. Use
 	 *    `navigateToDef.client(execute)` to attach your callback, then write
 	 *    the callback that actually moves the customer to the page the model
-	 *    picked. Everything you need is already in scope: `navigate` from
-	 *    React Router, and `navigateToDef` (which defines what the input and
-	 *    output schemas look like — `navigation.ts` is the spec).
+	 *    picked. `navigate` from React Router is already in scope, and
+	 *    `navigateToDef` defines what the input and output schemas look like
+	 *    — `navigation.ts` is the spec.
 	 *
 	 * 🦺 The callback's input type is inferred from `navigateToDef`'s
 	 *    `inputSchema`, and its return type must match the `outputSchema`.
 	 *    TypeScript will tell you if either is off.
 	 *
-	 * 🐨 Then add `tools: [navigateTo]` to the `useChat({...})` call. That's
-	 *    what hands your client tool to TanStack AI so it can run when the
-	 *    model picks it.
+	 * 🐨 Then add `navigateTo` to the `tools` array on `useChat({...})`, and
+	 *    write its `case` in the `switch (part.name)` further down.
+	 *
+	 * 💣 Delete the `void` lines once you're using these for real.
 	 */
-	void navigateToDef
 	void navigate
+	void NavigatedNotice
 
 	const { messages, sendMessage, isLoading } = useChat({
 		connection: fetchServerSentEvents('/api/chat'),
+		threadId,
 		forwardedProps: product ? { productId: product.productId } : {},
-		// 🐨 Add `tools: [navigateTo]` here once you've built the tool above.
+		tools: [
+			// Server tools: the server runs these. The browser only needs their
+			// definitions so every tool-call part below is typed.
+			searchProductsDef,
+			findSimilarProductsDef,
+			recommendProductsDef,
+			// 🐨 Client tools: the browser runs these. Add `navigateTo` here once
+			//    you've built it above.
+		],
 	})
 
 	return (
@@ -138,46 +162,32 @@ export function ProductChat() {
 										)
 									}
 									if (part.type === 'tool-call') {
-										const output = (part as { output?: unknown }).output as
-											| {
-													products?: Array<{ id: string }>
-													destination?: string
-											  }
-											| undefined
-
-										const products = output?.products
-										if (Array.isArray(products) && products.length > 0) {
-											return (
-												<div key={i} className="mt-2 flex flex-col gap-3">
-													{products.map((p) => (
-														<ProductCard
-															key={p.id}
-															product={p as Parameters<typeof ProductCard>[0]['product']}
-														/>
-													))}
-												</div>
-											)
+										switch (part.name) {
+											case 'searchProducts':
+											case 'findSimilarProducts':
+											case 'recommendProducts': {
+												if (!part.output?.products.length) break
+												return (
+													<ProductResults
+														key={i}
+														products={part.output.products}
+													/>
+												)
+											}
+											// 🐨 Add `case 'navigateTo':` here. Once the tool has run, `part.output`
+											//    is `{ destination }` (typed from `navigateToDef`'s output schema), so
+											//    show the customer where they went. The component is ready (imported
+											//    above) — uncomment it:
+											//      if (!part.output) break
+											//      return (
+											//        <NavigatedNotice key={i} destination={part.output.destination} />
+											//      )
+											//
+											// 🦺 `case 'navigateTo'` is a type error until `navigateTo` is in the
+											//    `useChat({ tools })` array — the parts are typed from that array.
 										}
-
-										if (output?.destination) {
-											return (
-												<div
-													key={i}
-													className="mt-1 text-xs italic text-gray-500 dark:text-gray-400"
-												>
-													📍 Took you to the {output.destination} page.
-												</div>
-											)
-										}
-
-										return (
-											<div
-												key={i}
-												className="mt-1 text-xs italic text-gray-500 dark:text-gray-400"
-											>
-												🔧 Calling {(part as { name?: string }).name ?? 'tool'}…
-											</div>
-										)
+										// Still running, or a result with nothing to show.
+										return <ToolCallPending key={i} name={part.name} />
 									}
 									return null
 								})}

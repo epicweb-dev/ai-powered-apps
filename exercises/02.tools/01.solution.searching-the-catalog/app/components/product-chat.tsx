@@ -3,7 +3,15 @@ import { TextPart } from '@tanstack/ai-react/ui'
 import { MessageCircle, Send, X } from 'lucide-react'
 import { useState } from 'react'
 import { useRouteLoaderData } from 'react-router'
-import { ProductCard } from '#app/components/product-card'
+import {
+	ProductResults,
+	ToolCallPending,
+} from '#app/components/tool-parts'
+import {
+	findSimilarProductsDef,
+	recommendProductsDef,
+	searchProductsDef,
+} from '#app/tools/products.ts'
 
 export type ProductChatContext = {
 	productId: string
@@ -45,10 +53,19 @@ export function ProductChat() {
 	const product = useCurrentProduct()
 	const [isOpen, setIsOpen] = useState(false)
 	const [draft, setDraft] = useState('')
+	const [threadId] = useState(() => crypto.randomUUID())
 
 	const { messages, sendMessage, isLoading } = useChat({
 		connection: fetchServerSentEvents('/api/chat'),
+		threadId,
 		forwardedProps: product ? { productId: product.productId } : {},
+		tools: [
+			// The server runs these tools. The browser only needs their
+			// definitions so every tool-call part below is typed.
+			searchProductsDef,
+			findSimilarProductsDef,
+			recommendProductsDef,
+		],
 	})
 
 	return (
@@ -107,33 +124,21 @@ export function ProductChat() {
 										)
 									}
 									if (part.type === 'tool-call') {
-										// Server tools that return `{ products }` (searchProducts,
-										// findSimilarProducts, recommendProducts) show their result
-										// as a stack of ProductCards once execution finishes.
-										const output = (part as { output?: unknown }).output as
-											| { products?: Array<{ id: string }> }
-											| undefined
-										const products = output?.products
-										if (Array.isArray(products) && products.length > 0) {
-											return (
-												<div key={i} className="mt-2 flex flex-col gap-3">
-													{products.map((p) => (
-														<ProductCard
-															key={p.id}
-															product={p as Parameters<typeof ProductCard>[0]['product']}
-														/>
-													))}
-												</div>
-											)
+										switch (part.name) {
+											case 'searchProducts':
+											case 'findSimilarProducts':
+											case 'recommendProducts': {
+												if (!part.output?.products.length) break
+												return (
+													<ProductResults
+														key={i}
+														products={part.output.products}
+													/>
+												)
+											}
 										}
-										return (
-											<div
-												key={i}
-												className="mt-1 text-xs italic text-gray-500 dark:text-gray-400"
-											>
-												🔧 Calling {(part as { name?: string }).name ?? 'tool'}…
-											</div>
-										)
+										// Still running, or a result with nothing to show.
+										return <ToolCallPending key={i} name={part.name} />
 									}
 									return null
 								})}

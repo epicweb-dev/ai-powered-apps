@@ -1,10 +1,5 @@
 import { toolDefinition } from '@tanstack/ai'
 import { z } from 'zod'
-import {
-	getProductById,
-	getProducts,
-	getRelatedProducts,
-} from '#app/domain/products.server.ts'
 
 const ProductInfo = z.object({
 	id: z.string(),
@@ -48,7 +43,7 @@ const SearchProductsInput = z.object({
 		.describe('How many products to return. Defaults to 5.'),
 })
 
-const findSimilarProductsDef = toolDefinition({
+export const findSimilarProductsDef = toolDefinition({
 	name: 'findSimilarProducts',
 	description:
 		'Find products similar to a given product (same category and brand). Use this when the customer wants alternatives — for example when their preferred size is out of stock, or when they want to compare a few options.',
@@ -60,20 +55,7 @@ const findSimilarProductsDef = toolDefinition({
 	outputSchema: ProductList,
 })
 
-export const findSimilarProducts = findSimilarProductsDef.server(
-	async ({ productId }) => {
-		const product = await getProductById(productId)
-		if (!product) return { products: [] }
-		const products = await getRelatedProducts(
-			productId,
-			product.category.id,
-			product.brand.id,
-		)
-		return { products }
-	},
-)
-
-const recommendProductsDef = toolDefinition({
+export const recommendProductsDef = toolDefinition({
 	name: 'recommendProducts',
 	description:
 		'Recommend top-rated products from the catalog. Use this when the customer is browsing and asks for suggestions or popular picks.',
@@ -89,30 +71,10 @@ const recommendProductsDef = toolDefinition({
 	outputSchema: ProductList,
 })
 
-export const recommendProducts = recommendProductsDef.server(
-	async ({ limit = 5 }) => {
-		const { products } = await getProducts({ sortBy: 'rating', limit })
-		return { products }
-	},
-)
-
-const searchProductsDef = toolDefinition({
+export const searchProductsDef = toolDefinition({
 	name: 'searchProducts',
 	description:
 		'Search the EpicStore catalog by free-text query and optional filters. Use this whenever the customer asks about products that are not the one they are currently looking at.',
 	inputSchema: SearchProductsInput,
 	outputSchema: ProductList,
 })
-
-export const searchProducts = searchProductsDef.server(
-	async ({ query, brand, category, priceMax, limit = 5 }) => {
-		const { products } = await getProducts({
-			search: query,
-			brand: brand ? [brand] : undefined,
-			category: category ? [category] : undefined,
-			priceMax,
-			limit,
-		})
-		return { products }
-	},
-)
