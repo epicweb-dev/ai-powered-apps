@@ -49,6 +49,8 @@ function useCurrentProduct(): ProductChatContext | undefined {
  *    - `useChat` manages messages, loading state, and the streaming connection
  *    - `fetchServerSentEvents('/api/chat')` is the connection adapter that
  *       knows how to consume our SSE endpoint
+ *    - `useChat` also needs a `threadId` — one stable id for the whole
+ *       conversation. 💰 `const [threadId] = useState(() => crypto.randomUUID())`
  *
  * 💣 Everything marked with the bomb emoji below is the hand-rolled fetch
  *    wrapper that lit up the panel in the previous exercise. Delete those

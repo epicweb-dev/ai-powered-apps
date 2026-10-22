@@ -22,9 +22,11 @@ export function ComparisonChat({
 }) {
 	const productIds = products.map((p) => p.id)
 	const [draft, setDraft] = useState('')
+	const [threadId] = useState(() => crypto.randomUUID())
 
 	const { sendMessage, isLoading, messages } = useChat({
 		connection: fetchServerSentEvents('/api/compare'),
+		threadId,
 		forwardedProps: { productIds },
 		outputSchema: ComparisonSchema,
 	})

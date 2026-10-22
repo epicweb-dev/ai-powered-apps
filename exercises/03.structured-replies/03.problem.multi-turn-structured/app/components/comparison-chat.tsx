@@ -22,6 +22,7 @@ export function ComparisonChat({
 }) {
 	const productIds = products.map((p) => p.id)
 	const [draft, setDraft] = useState('')
+	const [threadId] = useState(() => crypto.randomUUID())
 
 	// 🐨 Pull `messages` off useChat — the whole conversation, where every
 	//    assistant turn carries its own `structured-output` part. (Last exercise
@@ -29,6 +30,7 @@ export function ComparisonChat({
 	//    which is why each follow-up wiped the previous comparison off the screen.)
 	const { sendMessage, isLoading } = useChat({
 		connection: fetchServerSentEvents('/api/compare'),
+		threadId,
 		forwardedProps: { productIds },
 		outputSchema: ComparisonSchema,
 	})

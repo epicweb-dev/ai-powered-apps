@@ -8,7 +8,7 @@ TanStack AI is built around streaming. When you ask the model a question, the an
 
 ```
 useChat (in the browser)  ─┐
-                           ├──→ HTTP POST  ──→  server route  ──→ chat({ adapter, messages })  ──→  Server-Sent Events (SSE)  ──→  back to useChat
+                           ├──→ HTTP POST  ──→  server route  ──→ chat({ adapter, messages, threadId })  ──→  Server-Sent Events (SSE)  ──→  back to useChat
 fetchServerSentEvents
 ```
 
@@ -21,18 +21,19 @@ import { openRouterText } from '@tanstack/ai-openrouter'
 const adapter = openRouterText('nvidia/nemotron-3-super-120b-a12b:free')
 
 export const action = async ({ request }: Route.ActionArgs) => {
-	const { messages } = await chatParamsFromRequest(request)
-	const stream = chat({ adapter, messages })
+	const { messages, threadId } = await chatParamsFromRequest(request)
+	const stream = chat({ adapter, messages, threadId })
 	return toServerSentEventsResponse(stream)
 }
 ```
 
-Four things to notice here:
+Five things to notice here:
 
 1. **The adapter already knows which model to use.** When you call `openRouterText('nvidia/nemotron-3-super-120b-a12b:free')` you get back an adapter that is locked to that model. The `chat()` call does not take a separate `model` field.
 2. **The API key is read from `process.env.OPENROUTER_API_KEY` automatically.** You do not pass it in.
 3. **`chat()` returns a stream of small pieces, not a finished response.**
 4. **`toServerSentEventsResponse(stream)` turns that stream into something the browser can read.** It uses Server-Sent Events (SSE), which is a simple way for the server to push data to the browser over time.
+5. **Every chat needs a `threadId`.** It is the id of the conversation. The browser sends it with each request, `chatParamsFromRequest` hands it back, and you pass it on to `chat()`.
 
 The OpenRouter adapter is just one option. There are similar adapters for OpenAI, Anthropic, Gemini, Ollama, and others. Switching between them later is a one-line change.
 
@@ -59,8 +60,10 @@ In the first two exercises you only need the `messages` field, so the route stay
 On the browser, **one hook** does all the chat work. `useChat` gives you back a `messages` list, a `sendMessage` function, and an `isLoading` flag. You do not manage the connection or the message list yourself.
 
 ```tsx
+const [threadId] = useState(() => crypto.randomUUID())
 const { messages, sendMessage, isLoading } = useChat({
 	connection: fetchServerSentEvents('/api/chat'),
+	threadId,
 })
 ```
 

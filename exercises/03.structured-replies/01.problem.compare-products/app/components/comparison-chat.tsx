@@ -19,6 +19,7 @@ export function ComparisonChat({
 }) {
 	const productIds = products.map((p) => p.id)
 	const [draft, setDraft] = useState('')
+	const [threadId] = useState(() => crypto.randomUUID())
 
 	// 🐨 Tell `useChat` the assistant's reply will conform to ComparisonSchema.
 	//    Once you pass `outputSchema`, the hook exposes a new field on its
@@ -30,6 +31,7 @@ export function ComparisonChat({
 	//    and destructure `final` alongside `sendMessage` and `isLoading`.
 	const { sendMessage, isLoading } = useChat({
 		connection: fetchServerSentEvents('/api/compare'),
+		threadId,
 		forwardedProps: { productIds },
 	})
 	void ComparisonSchema

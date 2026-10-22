@@ -19,6 +19,7 @@ export function ComparisonChat({
 }) {
 	const productIds = products.map((p) => p.id)
 	const [draft, setDraft] = useState('')
+	const [threadId] = useState(() => crypto.randomUUID())
 
 	// 🐨 This page waits 20–30 seconds before anything appears, because it only
 	//    renders `final` — the fully-validated object, which lands all at once.
@@ -29,6 +30,7 @@ export function ComparisonChat({
 	// 💰 Add `partial` to the destructure below.
 	const { sendMessage, isLoading, final } = useChat({
 		connection: fetchServerSentEvents('/api/compare'),
+		threadId,
 		forwardedProps: { productIds },
 		outputSchema: ComparisonSchema,
 	})

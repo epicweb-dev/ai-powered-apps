@@ -35,9 +35,9 @@ The chat panel lives in the landing layout (`app/routes/_landing/_layout.tsx`) s
 
 ### 3. `app/routes/api.chat.tsx`
 
-The server route currently only reads `messages` from `chatParamsFromRequest(request)`. You will also pull in `forwardedProps`, validate the new `productId` field, use the prompt helpers, and turn on reasoning.
+The server route currently only reads `messages` and `threadId` from `chatParamsFromRequest(request)`. You will also pull in `forwardedProps`, validate the new `productId` field, use the prompt helpers, and turn on reasoning.
 
-4. 🐨 Destructure `forwardedProps` alongside `messages` from `await chatParamsFromRequest(request)`.
+4. 🐨 Destructure `forwardedProps` alongside `messages` and `threadId` from `await chatParamsFromRequest(request)`.
 5. 🐨 Validate the `forwardedProps` with `PageForwardedProps.safeParse(...)` (already imported from `#app/schemas/chat.js`). Return a `400 Response` if validation fails. `productId` is **optional** here — the chat panel also shows up on the products listing page where there is no specific product.
 6. 🐨 If `props.data.productId` is set, call `getProductById(props.data.productId)` (already imported) to load the product from the database. Otherwise the product is `null`.
 7. 🐨 Pass `systemPrompts: [GLOBAL_SYSTEM_PROMPT, buildProductPrompt(product)]` into the `chat()` call. If the product is `null` (no id, or the id is unknown), pass just `[GLOBAL_SYSTEM_PROMPT]` instead.

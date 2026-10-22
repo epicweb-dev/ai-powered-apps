@@ -44,6 +44,7 @@ export function ProductChat() {
 	const product = useCurrentProduct()
 	const [isOpen, setIsOpen] = useState(false)
 	const [draft, setDraft] = useState('')
+	const [threadId] = useState(() => crypto.randomUUID())
 
 	// 🐨 Add `forwardedProps` to the options object below so the server route
 	//    can tell which product the customer is looking at on every request.
@@ -54,6 +55,7 @@ export function ProductChat() {
 	//        : {}
 	const { messages, sendMessage, isLoading } = useChat({
 		connection: fetchServerSentEvents('/api/chat'),
+		threadId,
 	})
 
 	return (

@@ -106,6 +106,7 @@ Use this information to give grounded answers about this product.`
 // 💰 Add `forwardedProps: { product }` to the options object below.
 const { messages, sendMessage, isLoading } = useChat({
 	connection: fetchServerSentEvents('/api/chat'),
+	threadId,
 })
 ```
 
@@ -114,6 +115,7 @@ const { messages, sendMessage, isLoading } = useChat({
 ```tsx
 const { messages, sendMessage, isLoading } = useChat({
 	connection: fetchServerSentEvents('/api/chat'),
+	threadId,
 	forwardedProps: { product },
 })
 ```
@@ -160,12 +162,13 @@ const parsed = MessagesPayload.safeParse(await request.json())
 if (!parsed.success) {
 	return new Response(parsed.error.message, { status: 400 })
 }
-const { messages } = parsed.data
+const { messages, threadId } = parsed.data
 
 const stream = chat({
 	adapter,
 	systemPrompts: [SYSTEM_PROMPT],
 	messages,
+	threadId,
 })
 ```
 
@@ -176,13 +179,14 @@ const parsed = PagePayload.safeParse(await request.json())
 if (!parsed.success) {
 	return new Response(parsed.error.message, { status: 400 })
 }
-const { messages, forwardedProps } = parsed.data
+const { messages, threadId, forwardedProps } = parsed.data
 const { product } = forwardedProps
 
 const stream = chat({
 	adapter,
 	systemPrompts: [buildSystemPrompt(product)],
 	messages,
+	threadId,
 })
 ```
 
