@@ -31,7 +31,7 @@ The cart works manually. The chat does nothing. That's the starting state.
 - **They do:**
   - Drop their OpenRouter API key into `.env` (`OPENROUTER_API_KEY=…`)
   - Import `chat` from `@tanstack/ai` and `createOpenRouter` from `@tanstack/ai-openrouter`
-  - In the route's `action`, read the user message from the request body, call `chat({ adapter, model, messages })`, return the assistant text
+  - In the route's `action`, read the user message from the request body, call `chat({ adapter, messages, threadId })`, return the assistant text
   - From a second terminal: `curl -X POST localhost:3000/api/chat -d '{"message":"hello"}'` and see a real model reply
 - **After:** The server endpoint talks to a real LLM. UI still doesn't use it yet — verified by curl only. This is deliberate: prove the path one piece at a time.
 - **Wrong-attempt callout:** "You could hand-roll `fetch()` to OpenRouter's REST API directly." Instructor shows why we don't — no typed tool calling, no streaming helpers, no provider swap.

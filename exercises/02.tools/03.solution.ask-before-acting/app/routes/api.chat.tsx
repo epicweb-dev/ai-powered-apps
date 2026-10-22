@@ -1,6 +1,7 @@
 import {
 	chat,
 	chatParamsFromRequest,
+	mergeAgentTools,
 	toServerSentEventsResponse,
 } from '@tanstack/ai'
 import { openRouterText } from '@tanstack/ai-openrouter'
@@ -16,15 +17,22 @@ import {
 	findSimilarProducts,
 	recommendProducts,
 	searchProducts,
-} from '#app/tools/products.ts'
-import { showVariations } from '#app/tools/variations.ts'
+} from '#app/tools/products.server.ts'
+import { showVariations } from '#app/tools/variations.server.ts'
 import { type Route } from './+types/api.chat'
 
 const adapter = openRouterText('nvidia/nemotron-3-super-120b-a12b:free')
 
 export const action = async ({ request }: Route.ActionArgs) => {
-	const { messages, forwardedProps, threadId, runId, parentRunId, resume } =
-		await chatParamsFromRequest(request)
+	const {
+		messages,
+		forwardedProps,
+		threadId,
+		runId,
+		parentRunId,
+		resume,
+		tools: clientTools,
+	} = await chatParamsFromRequest(request)
 	const props = PageForwardedProps.safeParse(forwardedProps)
 	if (!props.success) {
 		return new Response(props.error.message, { status: 400 })
@@ -45,14 +53,22 @@ export const action = async ({ request }: Route.ActionArgs) => {
 		runId,
 		parentRunId,
 		resume,
-		tools: [
-			searchProducts,
-			findSimilarProducts,
-			recommendProducts,
-			showVariations,
-			navigateToDef,
-			addToCartDef,
-		],
+		// The browser also sends the tools it passed to `useChat`. Merge them in
+		// instead of ignoring them. On a name clash the server's copy wins: the
+		// browser only sends a name, a description, and an input schema, so
+		// `needsApproval`, `lazy`, and the output schema come from the
+		// definitions listed here. That's why the client tools are listed too.
+		tools: mergeAgentTools(
+			[
+				searchProducts,
+				findSimilarProducts,
+				recommendProducts,
+				showVariations,
+				navigateToDef,
+				addToCartDef,
+			],
+			clientTools,
+		),
 		reasoning: 'medium',
 	})
 	return toServerSentEventsResponse(stream)

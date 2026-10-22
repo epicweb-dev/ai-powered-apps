@@ -41,10 +41,11 @@ You'll build `getShippingEstimate` as a lazy tool, alongside four pre-built lazy
 All four flavors share the same shape:
 
 ```ts
+// app/tools/my-tool.ts: the definition. The server and the browser both import it.
 import { toolDefinition } from '@tanstack/ai'
 import { z } from 'zod'
 
-const myToolDef = toolDefinition({
+export const myToolDef = toolDefinition({
   name: 'doTheThing',
   description: 'A clear sentence about when the model should reach for this.',
   inputSchema: z.object({ /* ... */ }),
@@ -52,11 +53,18 @@ const myToolDef = toolDefinition({
 })
 
 // Then one of:
+// app/tools/my-tool.server.ts: a server tool
 export const myTool = myToolDef.server(async (args) => { /* ... */ })
-export const myTool = myToolDef.client(async (args) => { /* ... */ })
+// inside a React component: a client tool
+const myTool = myToolDef.client(async (args) => { /* ... */ })
 ```
 
 The `description` is the most important part of any tool. It is what the model reads to decide whether to call your tool, so write it like you are writing a prompt — be specific about *when* the tool is the right answer.
+
+The definition is the one thing both sides share:
+
+- **The server** registers every tool in `chat({ tools })`, and merges in the tools the browser declares with `mergeAgentTools(serverTools, clientTools)`.
+- **The browser** passes the definitions to `useChat({ tools })`, the server tools' too. That's what types every `tool-call` part, so the chat panel can `switch (part.name)` and get a fully typed `part.output` in each case.
 
 ## 📜 Docs
 

@@ -24,6 +24,7 @@ const PersonSchema = z.object({
 const stream = chat({
 	adapter,
 	messages,
+	threadId,
 	outputSchema: PersonSchema,
 	stream: true,
 })
@@ -36,6 +37,7 @@ On the client, `useChat` knows about this:
 ```tsx
 const { sendMessage, isLoading, partial, final } = useChat({
 	connection: fetchServerSentEvents('/api/extract-person'),
+	threadId,
 	outputSchema: PersonSchema,
 })
 ```

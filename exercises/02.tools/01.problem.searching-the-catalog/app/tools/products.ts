@@ -1,10 +1,13 @@
 import { toolDefinition } from '@tanstack/ai'
 import { z } from 'zod'
-import {
-	getProductById,
-	getProducts,
-	getRelatedProducts,
-} from '#app/domain/products.server.ts'
+
+/**
+ * 🦉 This file holds only the tool *definitions*: name, description, and
+ *    schemas. Both the server and the browser import it — the server to run
+ *    the tools, the browser so every tool-call part in the chat is typed — so
+ *    it must not touch the database. The code that actually runs on the
+ *    server lives next door in `products.server.ts`.
+ */
 
 /**
  * Shape of one product that comes back from any of the product tools. This
@@ -64,13 +67,14 @@ const SearchProductsInput = z.object({
 })
 
 /**
- * Pre-built tool: find products similar to a given one.
+ * Pre-built definition: find products similar to a given one.
  *
  * 🦉 You won't author this one — it's part of the scaffolding. Read through
- *    it so you know what shape a working server tool takes. `searchProducts`
- *    below should follow the same pattern.
+ *    it so you know what shape a tool definition takes. `searchProductsDef`
+ *    below should follow the same pattern. Its `.server(...)` code is in
+ *    `products.server.ts`.
  */
-const findSimilarProductsDef = toolDefinition({
+export const findSimilarProductsDef = toolDefinition({
 	name: 'findSimilarProducts',
 	description:
 		'Find products similar to a given product (same category and brand). Use this when the customer wants alternatives — for example when their preferred size is out of stock, or when they want to compare a few options.',
@@ -82,25 +86,12 @@ const findSimilarProductsDef = toolDefinition({
 	outputSchema: ProductList,
 })
 
-export const findSimilarProducts = findSimilarProductsDef.server(
-	async ({ productId }) => {
-		const product = await getProductById(productId)
-		if (!product) return { products: [] }
-		const products = await getRelatedProducts(
-			productId,
-			product.category.id,
-			product.brand.id,
-		)
-		return { products }
-	},
-)
-
 /**
- * Pre-built tool: recommend top-rated products from the catalog.
+ * Pre-built definition: recommend top-rated products from the catalog.
  *
- * 🦉 Also pre-built. Another reference for `searchProducts`.
+ * 🦉 Also pre-built. Another reference for `searchProductsDef`.
  */
-const recommendProductsDef = toolDefinition({
+export const recommendProductsDef = toolDefinition({
 	name: 'recommendProducts',
 	description:
 		'Recommend top-rated products from the catalog. Use this when the customer is browsing and asks for suggestions or popular picks.',
@@ -115,13 +106,6 @@ const recommendProductsDef = toolDefinition({
 	}),
 	outputSchema: ProductList,
 })
-
-export const recommendProducts = recommendProductsDef.server(
-	async ({ limit = 5 }) => {
-		const { products } = await getProducts({ sortBy: 'rating', limit })
-		return { products }
-	},
-)
 
 /**
  * 🦉 About the `description` field
@@ -142,8 +126,9 @@ export const recommendProducts = recommendProductsDef.server(
  *    ends with a "use this when..." sentence. That's not decoration — it's
  *    the cue the model is looking for.
  *
- * 🐨 Build the third server tool below: `searchProductsDef` and the exported
- *    `searchProducts`. Follow the same shape as the two tools above.
+ * 🐨 Build the third tool's definition below and export it as
+ *    `searchProductsDef`. Follow the same shape as the two definitions above.
+ *    Then write its server code in `products.server.ts`.
  *
  *    💰 `name`: `'searchProducts'`
  *
@@ -158,13 +143,4 @@ export const recommendProducts = recommendProductsDef.server(
  *    💰 `inputSchema`: plug in the pre-built `SearchProductsInput` from above.
  *
  *    💰 `outputSchema`: plug in the pre-built `ProductList` from above.
- *
- *    💰 `.server(...)` callback: destructure the args, default `limit` to 5,
- *       then call the pre-imported `getProducts({ ... })` and return
- *       `{ products }`. Map the inputs like this:
- *         - `query`     → `search`
- *         - `brand`     → `brand: brand ? [brand] : undefined`
- *         - `category`  → `category: category ? [category] : undefined`
- *         - `priceMax`  → `priceMax`
- *         - `limit`     → `limit`
  */

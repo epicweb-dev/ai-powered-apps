@@ -30,7 +30,7 @@ Plus the raw SSE rendering is hostile. We can do better.
 
 `useChat` and `fetchServerSentEvents` are pre-imported.
 
-1. Call `useChat({ connection: fetchServerSentEvents('/api/chat') })` and destructure `messages`, `sendMessage`, `isLoading`.
+1. Create a stable id with `const [threadId] = useState(() => crypto.randomUUID())`, call `useChat({ connection: fetchServerSentEvents('/api/chat'), threadId })` and destructure `messages`, `sendMessage`, `isLoading`.
 2. 💣 Delete the four hand-rolled pieces (state, function, JSX, form handler reference) listed in the pre-exercise state.
 3. Paste in the small messages-list JSX block Marty 💰 provides in the README (renders `messages.map(m => ...)` with user vs assistant styling — same look as the existing welcome bubble).
 4. Change the form's submit handler to call `sendMessage(draft); setDraft('')` directly instead of `sendHandRolled`.
@@ -126,8 +126,10 @@ import { useChat, fetchServerSentEvents } from '@tanstack/ai-react'
 
 1. **Replace the 💣 state + function with the hook:**
    ```tsx
+   const [threadId] = useState(() => crypto.randomUUID())
    const { messages, sendMessage, isLoading } = useChat({
    	connection: fetchServerSentEvents('/api/chat'),
+   	threadId,
    })
    ```
 2. **Replace `<pre>{reply}</pre>` + the error bubble** with Marty 💰's messages-list JSX snippet (in the README). `useChat` returns each message as `{ id, role, parts: Array<MessagePart> }` — there's no `m.content` on a UIMessage. We iterate `m.parts` and render each text part:

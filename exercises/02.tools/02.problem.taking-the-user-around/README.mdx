@@ -18,20 +18,25 @@ This new file already has the schemas built for you (`NavigateToInput` and `Navi
 
 🦉 Why an explicit allowlist instead of "every route in the app"? React Router doesn't ship a runtime hook that enumerates every defined route, and we wouldn't want one even if it did. `/api/chat` is a route. `/products/$productId` is a route that needs an id the bot can't guess. The allowlist is a deliberate subset — it's the security/UX boundary that keeps the bot out of pages it shouldn't reach.
 
-1. 🐨 At the bottom of the file there's a 🐨 block. Use it to build and export `navigateToDef` — same pattern as the server tools you wrote last time. Marty 💰 hands you the `name` and the `description` string; plug in `NavigateToInput` and `NavigateToOutput` as the schemas. **Do not** call `.server(...)` or `.client(...)` here — the file exports just the bare definition.
+1. 🐨 At the bottom of the file there's a 🐨 block. Use it to build and export `navigateToDef` — same pattern as the `searchProductsDef` definition you wrote last time. Marty 💰 hands you the `name` and the `description` string; plug in `NavigateToInput` and `NavigateToOutput` as the schemas. **Do not** call `.server(...)` or `.client(...)` here — the file exports just the bare definition.
 
 ### 2. `app/routes/api.chat.tsx` — tell the model the tool exists
 
-2. 🐨 Add `navigateToDef` to the `tools: [...]` array on the `chat({...})` call. The server doesn't run this tool itself — but it still has to tell the model that the tool is available, so the model knows it can call it.
-3. 💣 Delete the `void navigateToDef` line above the action once you've added it.
+The browser sends the tools it passed to `useChat` with every request. From now on the server takes those into account too.
+
+2. 🐨 Pull the browser's tools off `chatParamsFromRequest`, renamed so they don't clash with the `tools` option: `tools: clientTools`.
+3. 🐨 Add `navigateToDef` to the tools array, then wrap the whole array in `mergeAgentTools(serverTools, clientTools)` (already imported from `@tanstack/ai`). The server doesn't run `navigateTo` itself, but it still has to tell the model the tool exists.
+4. 💣 Delete the `void` lines above the action once you've used both names.
 
 ### 3. `app/components/product-chat.tsx` — provide the implementation (the new bit)
 
 This is the new concept. Open `product-chat.tsx` and find the 🦉/🐨 block in the `ProductChat` component.
 
-4. 🐨 Build the client tool as `const navigateTo`, using `navigateToDef.client(execute)`. The callback receives whatever the model picked from the `inputSchema` and must return something matching the `outputSchema` — `navigation.ts` is the spec. Use `navigate` (from `useNavigate()`, already in scope) to actually move the customer. The callback can be sync — `navigate(...)` is synchronous, `.client(...)` accepts both sync and async.
-5. 🐨 Add `tools: [navigateTo]` to the `useChat({...})` call. That's what hands your client tool to TanStack AI on the browser side.
-6. 💣 Delete the two `void` lines (`navigateToDef`, `navigate`) once you're using them for real.
+5. 🐨 Import `navigateToDef` from `#app/tools/navigation.ts` once it exists. Importing it before you've exported it breaks every page of the store.
+6. 🐨 Build the client tool as `const navigateTo`, using `navigateToDef.client(execute)`. The callback receives whatever the model picked from the `inputSchema` and must return something matching the `outputSchema` — `navigation.ts` is the spec. Use `navigate` (from `useNavigate()`, already in scope) to actually move the customer. The callback can be sync — `navigate(...)` is synchronous, `.client(...)` accepts both sync and async.
+7. 🐨 Add `navigateTo` to the `tools` array on the `useChat({...})` call, next to the server tool definitions. That's what hands your client tool to TanStack AI on the browser side.
+8. 🐨 In the `switch (part.name)`, add `case 'navigateTo'`. Once the tool has run, `part.output` is `{ destination }`. The `<NavigatedNotice />` component is ready; the 🐨 comment has the line to uncomment.
+9. 💣 Delete the `void` lines (`navigate`, `NavigatedNotice`) once you're using them for real.
 
 ## 🦉 Server tools vs client tools — the mental model
 
@@ -42,6 +47,17 @@ A **client tool** is one where you call `.client(execute)`. The model still deci
 How does the result get back? The server pauses the run and tells the browser which tool to run. `useChat` runs your callback and then sends a second request that carries the result. That request continues the paused run. This is why `api.chat.tsx` now also forwards `runId`, `parentRunId`, and `resume` to `chat()`. Without them, the server cannot match the result to the paused run.
 
 Both kinds of tool look identical to the model. Both need their *definition* (name, description, schema) registered with `chat()` on the server so the model knows they exist. The only difference is **where the code runs** when the model picks it.
+
+## 🦉 Why `mergeAgentTools` and not a spread?
+
+`chatParamsFromRequest` hands you the browser's tools, so it's tempting to write `tools: [...serverTools, ...clientTools]`. Don't:
+
+- The browser sends each tool as `{ name, description, parameters }`, but `chat()` reads `inputSchema`. A plain spread hands the model a tool with no arguments.
+- The browser also declares the server tools (you pass their definitions to `useChat` for typing), so a spread would list every server tool twice.
+
+`mergeAgentTools(serverTools, clientTools)` converts the shape and drops duplicates. On a name clash, the server's copy wins.
+
+So why still list `navigateToDef` on the server? Because the browser only sends a name, a description, and an input schema. Everything else on the definition — the output schema, and flags like `needsApproval` you'll meet in the next exercise — only exists in the server's copy. Listing the shared definition on the server means the server's full copy wins the merge. For `navigateTo` a missing server copy only gets you a console warning; for a tool that needs approval, it means the tool runs without asking.
 
 Server tools are for things only the server can do (database reads, secrets, paid APIs). Client tools are for things only the browser can do (routing, scroll, localStorage, the user's clipboard).
 
@@ -69,8 +85,12 @@ The chat panel itself stays mounted across these navigations because it lives in
 
 ## 🚨 If you get stuck
 
-- **TypeScript complains that `navigateToDef` is not exported from `#app/tools/navigation.ts`** → you haven't built it yet. The 🐨 block in `navigation.ts` tells you exactly what to put in `toolDefinition({...})`.
+- **TypeScript complains that `navigateToDef` is not exported from `#app/tools/navigation.ts`** → you haven't built it yet. The 🐨 block in `navigation.ts` tells you exactly what to put in `toolDefinition({...})`. Until it exists you'll also see the error in `tool-parts.tsx` and `api.chat.tsx`, which import it.
 - **TypeScript complains about `navigateTo` being undefined** → you haven't built the const in `product-chat.tsx` yet. Read the 🦉/🐨 block there and look at `navigation.ts` to see what shapes go in and out.
-- **The bot answers in text instead of navigating** → either you forgot to add `navigateToDef` to the server `tools: [...]`, or you forgot to add `navigateTo` to the `useChat({ tools: [...] })`. Both have to be there: the server side advertises the tool, the client side runs it.
+- **Every page of the store shows an error** → `product-chat.tsx` imports `navigateToDef` before `navigation.ts` exports it. Build the definition first, then add the import.
+- **The bot answers in text instead of navigating** → the model never heard of the tool. The server neither lists `navigateToDef` nor merges the browser's tools with `mergeAgentTools(..., clientTools)`.
+- **The chat sits on `🔧 Calling navigateTo…` forever, with no warning in the console** → the server told the model about the tool, but the browser has nothing to run. Add `navigateTo` to the `useChat({ tools: [...] })` array.
+- **Navigation works, but the console warns that "the server and client tool schemas differ"** → the server is merging `clientTools` but `navigateToDef` isn't in its own array, so the model got the browser's copy, which has no output schema. Add `navigateToDef` to the array inside `mergeAgentTools([...], clientTools)`. It matters more next exercise: for a tool that needs approval, this same gap makes it run without asking.
+- **TypeScript says `'navigateTo'` is not comparable in the `switch`** → `navigateTo` is not in the `useChat({ tools: [...] })` array yet. The parts are typed from that array.
 - **The bot calls the tool but the URL doesn't change** → make sure your callback actually calls `navigate(destination)`. Returning the right object isn't enough — `navigate(...)` is the side effect that does the work.
 - **`navigate` is undefined inside the callback** → you skipped the `const navigate = useNavigate()` line at the top of the component. The callback closes over that value, so it has to exist before you build the tool.

@@ -72,6 +72,7 @@ const stream = chat({
 	// 🐨 Pass `systemPrompts: [SYSTEM_PROMPT]` here. The model is baked into
 	//    the adapter, so no separate `model:` field is needed.
 	messages,
+	threadId,
 })
 ```
 
@@ -95,6 +96,7 @@ const stream = chat({
 	adapter,
 	systemPrompts: [SYSTEM_PROMPT],
 	messages,
+	threadId,
 })
 ```
 

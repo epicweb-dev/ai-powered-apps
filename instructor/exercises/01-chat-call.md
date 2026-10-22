@@ -30,8 +30,8 @@ The scaffold already imports everything they consume (`chat`, `toServerSentEvent
    - Builds the OpenRouter adapter with `openRouterText('nvidia/nemotron-3-super-120b-a12b:free')` (the adapter reads `OPENROUTER_API_KEY` from env automatically)
    - Calls `MessagesPayload.safeParse(await request.json())` to validate the incoming body
    - On `parsed.success === false`, returns `new Response(parsed.error.message, { status: 400 })`
-   - On success, destructures `messages` from `parsed.data`
-   - Calls `chat({ adapter, messages })` — model is baked into the adapter, no separate `model:` field
+   - On success, destructures `messages` and `threadId` from `parsed.data`
+   - Calls `chat({ adapter, messages, threadId })` — model is baked into the adapter, no separate `model:` field; `threadId` is required in TanStack AI 1.0
    - Returns `toServerSentEventsResponse(stream)`
    - 💣 Deletes the `void` placeholder + the 501 `Response`
 3. Verify in the running app — no curl. Open a product, click the bubble, type a message, hit send. Before this step the panel showed a red 501 bubble. Now the hand-rolled fetch lands a real response and the panel renders the raw SSE `data:` frames in a `<pre>` block. Ugly, but visibly working.
@@ -93,7 +93,7 @@ import { type Route } from './+types/api.chat'
 //    The adapter reads OPENROUTER_API_KEY from your environment automatically.
 // 🐨 In the action: validate `await request.json()` with the pre-imported
 //    `MessagesPayload.safeParse(...)`. On failure return a 400 with
-//    `parsed.error.message`. On success, call `chat({ adapter, messages })`
+//    `parsed.error.message`. On success, call `chat({ adapter, messages, threadId })`
 //    (the model is baked into the adapter — no separate `model:` field) and
 //    return `toServerSentEventsResponse(stream)`.
 // 💣 Delete the 501 placeholder once your chat() call is in.
@@ -118,9 +118,9 @@ export const action = async ({ request }: Route.ActionArgs) => {
 	if (!parsed.success) {
 		return new Response(parsed.error.message, { status: 400 })
 	}
-	const { messages } = parsed.data
+	const { messages, threadId } = parsed.data
 
-	const stream = chat({ adapter, messages })
+	const stream = chat({ adapter, messages, threadId })
 	return toServerSentEventsResponse(stream)
 }
 ```

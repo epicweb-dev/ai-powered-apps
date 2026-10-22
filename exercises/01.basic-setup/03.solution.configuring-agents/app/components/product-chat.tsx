@@ -44,9 +44,11 @@ export function ProductChat() {
 	const product = useCurrentProduct()
 	const [isOpen, setIsOpen] = useState(false)
 	const [draft, setDraft] = useState('')
+	const [threadId] = useState(() => crypto.randomUUID())
 
 	const { messages, sendMessage, isLoading } = useChat({
 		connection: fetchServerSentEvents('/api/chat'),
+		threadId,
 		forwardedProps: product ? { productId: product.productId } : {},
 	})
 

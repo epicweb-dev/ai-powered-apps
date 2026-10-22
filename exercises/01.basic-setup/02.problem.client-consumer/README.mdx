@@ -8,7 +8,7 @@ In this exercise you will replace that hand-written code with TanStack AI's `use
 
 In `app/components/product-chat.tsx`, the imports you need are already at the top of the file: `useChat` and `fetchServerSentEvents` from `@tanstack/ai-react`.
 
-1. 🐨 Call `useChat({ connection: fetchServerSentEvents('/api/chat') })` and read `messages`, `sendMessage`, and `isLoading` from what it returns.
+1. 🐨 Give the conversation an id that stays the same while the panel is open: `const [threadId] = useState(() => crypto.randomUUID())`. Then call `useChat({ connection: fetchServerSentEvents('/api/chat'), threadId })` and read `messages`, `sendMessage`, and `isLoading` from what it returns.
 2. 💣 Delete the four 💣-marked pieces that belong to the hand-written `fetch`:
    - The `reply`, `error`, `isLoading` `useState` calls
    - The `sendHandRolled` function
@@ -28,6 +28,10 @@ In `app/components/product-chat.tsx`, the imports you need are already at the to
      ...
    >
    ```
+
+## 🦉 About `threadId`
+
+`useChat` needs a `threadId`: the id of this conversation. Every request it sends carries that id, and the server passes it on to `chat()`. Use the same id for the whole conversation. A new id means a new conversation, so do not call `crypto.randomUUID()` on every render. Putting it in `useState(() => ...)` makes it once, when the panel first mounts. In a real app you would often use an id from your database or the URL instead.
 
 ## 🦉 About `useChat`
 

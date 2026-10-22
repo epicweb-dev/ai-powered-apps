@@ -16,8 +16,8 @@ You will not touch the imports. You will:
 1. 🐨 Build the OpenRouter adapter by calling `openRouterText('nvidia/nemotron-3-super-120b-a12b:free')`. The adapter reads `OPENROUTER_API_KEY` from your environment by itself, so you do not pass the key in.
 2. 🐨 Replace the body of the `action` so that it:
    - Calls `await chatParamsFromRequest(request)` to parse and validate the AG-UI request body. On a malformed body it throws a `Response` with status 400 — React Router 7 surfaces that to the client automatically, so no `try/catch` needed.
-   - Destructures `messages` from the returned params.
-   - Calls `chat({ adapter, messages })` (the model is already inside the adapter, so there is no separate `model:` field).
+   - Destructures `messages` and `threadId` from the returned params. `threadId` is the id of the conversation; the browser sends it with every request, and `chat()` requires it.
+   - Calls `chat({ adapter, messages, threadId })` (the model is already inside the adapter, so there is no separate `model:` field).
    - Returns `toServerSentEventsResponse(stream)`.
 3. 💣 Delete the `void` lines and the `501` `Response` once your real code is in place.
 
